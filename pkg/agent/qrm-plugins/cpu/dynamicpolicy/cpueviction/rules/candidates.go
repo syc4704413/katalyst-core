@@ -74,6 +74,7 @@ func PrepareCandidatePods(_ context.Context, request *pluginapi.GetTopEvictionPo
 	for _, pod := range pods {
 		for _, record := range evictionRecords {
 			if record.Uid == string(pod.UID) {
+				general.Infof("get eviction record for pod %s, record: %v", pod.Name, record)
 				workloadInfos, err := getWorkloadEvictionInfo(record)
 				if err != nil {
 					general.Warningf("get workload eviction info failed: %v", err)
@@ -122,7 +123,7 @@ func getWorkloadEvictionInfo(evictionRecord *pluginapi.EvictionRecord) (map[stri
 	workloadsEvictionInfo[workloadName] = &WorkloadEvictionInfo{
 		WorkloadName:     workloadName,
 		StatsByWindow:    statsByWindow,
-		Replicas:         evictionRecord.CurrentHealthy,
+		Replicas:         evictionRecord.ExpectedPods,
 		LastEvictionTime: lastEvictionTime,
 		Limit:            evictionRecord.DisruptionsAllowed,
 	}

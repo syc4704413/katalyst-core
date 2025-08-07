@@ -165,9 +165,10 @@ func DeploymentEvictionFrequencyScorer(pod *CandidatePod, params interface{}) in
 			perHourCount := float64(stats.EvictionCount) / window
 			general.Infof("limit: %v, perHourCount: %v", workloadInfo.Limit, perHourCount)
 			countScore := normalizeCount(perHourCount, workloadInfo.Limit)
-			ratioScore := stats.EvictionRatio * 10
-			windowContribution := (countScore + ratioScore) * weight
-			general.Infof("window: %v, countScore: %v, ratioScore: %v, windowContribution: %v", window, countScore, ratioScore, windowContribution)
+			// ratioScore := stats.EvictionRatio * 10
+			// windowContribution := (countScore + ratioScore) * weight
+			windowContribution := countScore * stats.EvictionRatio * 10
+			general.Infof("window: %v, countScore: %v, ratio: %v, windowContribution: %v", window, countScore, stats.EvictionRatio, windowContribution)
 			windowScore += windowContribution
 			weightSum += weight
 		}
