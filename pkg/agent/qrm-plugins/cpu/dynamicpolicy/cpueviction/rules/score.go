@@ -226,19 +226,19 @@ func UsageGapScorer(pod *CandidatePod, params interface{}) int {
 	numaHis, ok := metricsHistory.Inner[numaID]
 	if !ok {
 		general.Warningf("no metrics history for numa %d", numaID)
-		return 0
+		return score
 	}
 	podUID := string(pod.Pod.UID)
 	podHis, existMetric := numaHis[podUID]
 	if !existMetric {
 		general.Warningf("no metric history for pod %s on numa %d", podUID, numaID)
-		return 0
+		return score
 	}
 	metricRing, ok := podHis[targetMetric]
 	// general.Infof("podmetricRing: %v", metricRing)
 	if !ok {
 		general.Warningf("no %s metric history for pod %s", targetMetric, podUID)
-		return 0
+		return score
 	}
 	avgUsageRatio := metricRing.Avg()
 	// general.Infof("pod avgUsageRatio: %v", avgUsageRatio)

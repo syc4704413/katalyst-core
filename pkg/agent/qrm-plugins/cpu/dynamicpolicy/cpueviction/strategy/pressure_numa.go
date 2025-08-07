@@ -285,21 +285,21 @@ func (p *NumaCPUPressureEviction) GetTopEvictionPods(ctx context.Context, reques
 	p.SetEvictionScorerParam(rules.UsageGapScorerName, p.numaOverStats)
 	general.Infof("activePods: %v", len(activePods))
 
-	// filteredPods := p.filterer.Filter(activePods)
+	filteredPods := p.filterer.Filter(activePods)
 
-	// if len(filteredPods) == 0 {
-	// 	general.Warningf("got empty active pods list after filter")
-	// 	return &pluginapi.GetTopEvictionPodsResponse{}, nil
-	// }
+	if len(filteredPods) == 0 {
+		general.Warningf("got empty active pods list after filter")
+		return &pluginapi.GetTopEvictionPodsResponse{}, nil
+	}
 
-	// general.Infof("filteredPods: %v", len(filteredPods))
+	general.Infof("getTopEvictionPods filteredPods: %v", len(filteredPods))
 
 	//1.get annotation of pods
 	candidatePods, _ := rules.PrepareCandidatePods(ctx, request)
 	general.Infof("candidatePods: %v", len(candidatePods))
 	// to delete
-	// candidatePods = rules.FilterCandidatePods(candidatePods, filteredPods)
-	// general.Infof("candidatePods after filter: %v", len(candidatePods))
+	candidatePods = rules.FilterCandidatePods(candidatePods, filteredPods)
+	general.Infof("candidatePods after filter: %v", len(candidatePods))
 
 	candidatePods = p.scorer.Score(candidatePods)
 	general.Infof("candidatePods after scorer: %v", candidatePods)
