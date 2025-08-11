@@ -124,7 +124,7 @@ func (s *Scorer) Score(pods []*CandidatePod) []*CandidatePod {
 	sort.Slice(pods, func(i, j int) bool {
 		return pods[i].TotalScore < pods[j].TotalScore
 	})
-	general.Infof("scored %d pods, bottom score: %s, %d", len(pods), pods[0].Pod.Name, pods[0].TotalScore)
+	general.Infof("scored %d pods, bottom score: %s,%d ,top score: %s, %d", len(pods), pods[0].Pod.Name, pods[0].TotalScore, pods[len(pods)-1].Pod.Name, pods[len(pods)-1].TotalScore)
 	for scorerName, score := range pods[0].Scores {
 		general.Infof("scorer name: %s, score: %d", scorerName, score)
 	}
@@ -166,7 +166,7 @@ func DeploymentEvictionFrequencyScorer(pod *CandidatePod, params interface{}) in
 			perHourCount := float64(stats.EvictionCount) / window
 			general.Infof("limit: %v, perHourCount: %v", workloadInfo.Limit, perHourCount)
 			countScore := normalizeCount(perHourCount, workloadInfo.Limit)
-			windowContribution := countScore * stats.EvictionRatio * 10
+			windowContribution := countScore * stats.EvictionRatio
 			general.Infof("window: %v, countScore: %v, ratio: %v, windowContribution: %v", window, countScore, stats.EvictionRatio, windowContribution)
 			windowScore += windowContribution
 			weightSum += weight
