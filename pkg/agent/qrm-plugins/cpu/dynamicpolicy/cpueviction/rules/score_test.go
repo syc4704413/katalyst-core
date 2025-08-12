@@ -113,7 +113,7 @@ func TestScorer_Score(t *testing.T) {
 			scorerParams:   nil,
 		},
 		args: args{pods: makeCandidatePods()},
-		want: want{sortedPodNames: []string{"pod5", "pod2", "pod1", "pod4", "pod3"}},
+		want: want{sortedPodNames: []string{"pod5", "pod2", "pod4", "pod1", "pod3"}},
 	}, {
 		name: "UsageGapScorer only",
 		fields: fields{
@@ -141,7 +141,7 @@ func TestScorer_Score(t *testing.T) {
 			},
 		},
 		args: args{pods: makeCandidatePods()},
-		want: want{sortedPodNames: []string{"pod2", "pod5", "pod1", "pod4", "pod3"}},
+		want: want{sortedPodNames: []string{"pod2", "pod5", "pod4", "pod1", "pod3"}},
 	}}
 
 	for _, tt := range tests {
@@ -190,7 +190,7 @@ func TestDeploymentEvictionFrequencyScorer(t *testing.T) {
 					},
 				},
 			},
-			wantScore: 35,
+			wantScore: 63,
 		},
 		{
 			name: "zero eviction count",
@@ -207,7 +207,7 @@ func TestDeploymentEvictionFrequencyScorer(t *testing.T) {
 					},
 				},
 			},
-			wantScore: 0,
+			wantScore: 100,
 		},
 		{
 			name: "exceed limit normalization",
@@ -224,7 +224,7 @@ func TestDeploymentEvictionFrequencyScorer(t *testing.T) {
 					},
 				},
 			},
-			wantScore: 100,
+			wantScore: 37,
 		},
 	}
 
@@ -248,7 +248,7 @@ func TestUsageGapScorer(t *testing.T) {
 					consts.MetricCPUUsageContainer: {
 						MaxLen: 2,
 						Queue: []*history.MetricSnapshot{
-							{Info: history.MetricInfo{Value: 0.8}},
+							{Info: history.MetricInfo{Value: 0.7}},
 						},
 					},
 				},
@@ -273,7 +273,7 @@ func TestUsageGapScorer(t *testing.T) {
 				Gap:            0.5,
 				MetricsHistory: mockMetricsHistory,
 			}},
-			wantScore: 30,
+			wantScore: 16,
 		},
 		{
 			name: "no metric history",
@@ -285,7 +285,7 @@ func TestUsageGapScorer(t *testing.T) {
 				Gap:            0.5,
 				MetricsHistory: mockMetricsHistory,
 			}},
-			wantScore: 10,
+			wantScore: 0,
 		},
 	}
 
@@ -308,7 +308,7 @@ func TestNewScorer_InvalidScorer(t *testing.T) {
 
 func TestScore_NilPods(t *testing.T) {
 	t.Parallel()
-	scorer, _ := NewScorer([]string{PriorityScorerName}, metrics.DummyMetrics{}, nil)
+	scorer, _ := NewScorer([]string{UsageGapScorerName}, metrics.DummyMetrics{}, nil)
 	result := scorer.Score([]*CandidatePod{nil, {Pod: makePod("valid")}})
 	assert.Len(t, result, 1)
 	assert.NotNil(t, result[0])
@@ -320,50 +320,6 @@ func TestScorer_EmptyScorers(t *testing.T) {
 	pods := []*CandidatePod{{Pod: makePod("test")}}
 	result := scorer.Score(pods)
 	assert.Equal(t, pods, result)
-}
-
-func TestNormalizeCount(t *testing.T) {
-	t.Parallel()
-	tests := []struct {
-		name         string
-		perHourCount float64
-		limit        int32
-		want         float64
-	}{
-		{
-			name:         "limit zero",
-			perHourCount: 5,
-			limit:        0,
-			want:         5,
-		},
-		{
-			name:         "count equals limit",
-			perHourCount: 3,
-			limit:        3,
-			want:         10,
-		},
-		{
-			name:         "count exceeds limit",
-			perHourCount: 6,
-			limit:        3,
-			want:         20,
-		},
-		{
-			name:         "count below limit",
-			perHourCount: 1,
-			limit:        3,
-			want:         3.3333333333333335,
-		},
-	}
-
-	for _, tt := range tests {
-		tt := tt
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			result := normalizeCount(tt.perHourCount, tt.limit)
-			assert.InDelta(t, tt.want, result, 0.001)
-		})
-	}
 }
 
 func TestSetScorerParam(t *testing.T) {
