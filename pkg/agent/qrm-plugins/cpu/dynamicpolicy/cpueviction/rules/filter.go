@@ -88,6 +88,7 @@ podLoop:
 	for _, pod := range pods {
 		for name, filter := range f.filters {
 			if filter(pod, f.filterParams[name]) {
+				general.Infof("pod %s filtered by filter %s", pod.Name, name)
 				_ = f.emitter.StoreInt64("qrm_eviction_filter_pods_total", 1, metrics.MetricTypeNameCount,
 					metrics.MetricTag{Key: "filter_name", Val: name},
 					metrics.MetricTag{Key: "result", Val: "filtered"},
