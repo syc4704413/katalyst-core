@@ -39,6 +39,11 @@ const (
 	scorer_name_key                       = "scorer_name"
 	impact_type_key                       = "impact_type"
 	score_contribution_key                = "score_contribution"
+	qrmEvictionPodTotalScoreKey           = "qrm_eviction_pod_total_score"
+	qrmEvictionPodScorerScoreKey          = "qrm_eviction_pod_scorer_score"
+	qrmEvictionScorerAverageScoreKey      = "qrm_eviction_scorer_average_score"
+	podNameKey                            = "pod_name"
+	rankKey                               = "rank"
 )
 
 var DefaultEnabledScorers = []string{
@@ -136,6 +141,57 @@ func (s *Scorer) Score(pods []*CandidatePod) []*CandidatePod {
 	for scorerName, score := range validPods[0].Scores {
 		general.Infof("scorer name: %s, score: %d", scorerName, score)
 	}
+
+	if len(validPods) == 0 {
+		return validPods
+	}
+
+	general.Infof("scored %d pods, bottom score: %s, %d, top score: %s, %d", len(validPods), validPods[0].Pod.Name, validPods[0].TotalScore, validPods[len(validPods)-1].Pod.Name, validPods[len(validPods)-1].TotalScore)
+	for scorerName, score := range validPods[0].Scores {
+		general.Infof("scorer name: %s, score: %d", scorerName, score)
+	}
+
+	bottomPod := validPods[0]
+	topPod := validPods[len(validPods)-1]
+
+	_ = s.emitter.StoreFloat64(qrmEvictionPodTotalScoreKey, float64(bottomPod.TotalScore), metrics.MetricTypeNameRaw,
+		metrics.MetricTag{Key: podNameKey, Val: bottomPod.Pod.Name},
+		metrics.MetricTag{Key: rankKey, Val: "bottom"},
+	)
+	for name, score := range bottomPod.Scores {
+		_ = s.emitter.StoreFloat64(qrmEvictionPodScorerScoreKey, float64(score), metrics.MetricTypeNameRaw,
+			metrics.MetricTag{Key: podNameKey, Val: bottomPod.Pod.Name},
+			metrics.MetricTag{Key: rankKey, Val: "bottom"},
+			metrics.MetricTag{Key: scorer_name_key, Val: name},
+		)
+	}
+
+	_ = s.emitter.StoreFloat64(qrmEvictionPodTotalScoreKey, float64(topPod.TotalScore), metrics.MetricTypeNameRaw,
+		metrics.MetricTag{Key: podNameKey, Val: topPod.Pod.Name},
+		metrics.MetricTag{Key: rankKey, Val: "top"},
+	)
+	for name, score := range topPod.Scores {
+		_ = s.emitter.StoreFloat64(qrmEvictionPodScorerScoreKey, float64(score), metrics.MetricTypeNameRaw,
+			metrics.MetricTag{Key: podNameKey, Val: topPod.Pod.Name},
+			metrics.MetricTag{Key: rankKey, Val: "top"},
+			metrics.MetricTag{Key: scorer_name_key, Val: name},
+		)
+	}
+
+	avgScores := make(map[string]float64)
+	for _, pod := range validPods {
+		for name, score := range pod.Scores {
+			avgScores[name] += float64(score)
+		}
+	}
+
+	for name, total := range avgScores {
+		avg := total / float64(len(validPods))
+		_ = s.emitter.StoreFloat64(qrmEvictionScorerAverageScoreKey, avg, metrics.MetricTypeNameRaw,
+			metrics.MetricTag{Key: scorer_name_key, Val: name},
+		)
+	}
+
 	return validPods
 }
 
