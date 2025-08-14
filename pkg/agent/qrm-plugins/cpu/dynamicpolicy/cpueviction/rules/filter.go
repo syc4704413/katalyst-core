@@ -88,10 +88,6 @@ podLoop:
 	for _, pod := range pods {
 		for name, filter := range f.filters {
 			if filter(pod, f.filterParams[name]) {
-				_ = f.emitter.StoreInt64("qrm_eviction_filter_pods_total", 1, metrics.MetricTypeNameCount,
-					metrics.MetricTag{Key: "filter_name", Val: name},
-					metrics.MetricTag{Key: "result", Val: "filtered"},
-				)
 				continue podLoop
 			}
 		}
@@ -136,7 +132,7 @@ func OwnerRefFilter(pod *v1.Pod, params interface{}) bool {
 	for _, ownerRef := range pod.OwnerReferences {
 		for _, kind := range skippedPodKinds {
 			if ownerRef.Kind == kind {
-				general.Infof("OwnerRefFilter: pod %s is owned by %s, will be filtered", pod.Name, kind)
+				// general.Infof("OwnerRefFilter: pod %s is owned by %s, will be filtered", pod.Name, kind)
 				return true
 			}
 		}
@@ -172,9 +168,9 @@ func OverRatioNumaFilter(pod *v1.Pod, params interface{}) bool {
 	}
 
 	_, existMetric := numaHis[string(pod.UID)]
-	if existMetric {
-		general.Infof("OverRatioNumaFilter: pod %s is overloaded on numa %d, will be filtered", pod.Name, numaID)
-	}
+	// if existMetric {
+	// 	general.Infof("OverRatioNumaFilter: pod %s is overloaded on numa %d, will be filtered", pod.Name, numaID)
+	// }
 
 	return !existMetric
 }
