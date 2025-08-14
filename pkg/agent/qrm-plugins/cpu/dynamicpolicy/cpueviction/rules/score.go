@@ -87,7 +87,7 @@ func NewScorer(enabledScorers []string, emitter metrics.MetricEmitter, scorerPar
 		scorers[name] = scorer
 		params[name] = scorerParams[name]
 	}
-	general.Infof("initialized scorer with %d enabled scorers", len(scorers))
+	// general.Infof("initialized scorer with %d enabled scorers", len(scorers))
 	return &Scorer{
 		scorers:      scorers,
 		scorerParams: params,
@@ -148,11 +148,6 @@ func (s *Scorer) Score(pods []*CandidatePod) []*CandidatePod {
 
 	if len(validPods) == 0 {
 		return validPods
-	}
-
-	general.Infof("scored %d pods, bottom score: %s, %d, top score: %s, %d", len(validPods), validPods[0].Pod.Name, validPods[0].TotalScore, validPods[len(validPods)-1].Pod.Name, validPods[len(validPods)-1].TotalScore)
-	for scorerName, score := range validPods[0].Scores {
-		general.Infof("scorer name: %s, score: %d", scorerName, score)
 	}
 
 	bottomPod := validPods[0]
@@ -223,10 +218,10 @@ func DeploymentEvictionFrequencyScorer(pod *CandidatePod, params interface{}) in
 		for window, stats := range workloadInfo.StatsByWindow {
 			weight := usageGapScoreWeight / window
 			perHourCount := float64(stats.EvictionCount) / window
-			general.Infof("limit: %v, perHourCount: %v", workloadInfo.Limit, perHourCount)
+			// general.Infof("limit: %v, perHourCount: %v", workloadInfo.Limit, perHourCount)
 			countScore := normalizeCount(perHourCount, workloadInfo.Limit)
 			windowContribution := countScore * stats.EvictionRatio * 10
-			general.Infof("window: %v, countScore: %v, ratio: %v, windowContribution: %v", window, countScore, stats.EvictionRatio, windowContribution)
+			// general.Infof("window: %v, countScore: %v, ratio: %v, windowContribution: %v", window, countScore, stats.EvictionRatio, windowContribution)
 			windowScore += windowContribution
 			weightSum += weight
 		}

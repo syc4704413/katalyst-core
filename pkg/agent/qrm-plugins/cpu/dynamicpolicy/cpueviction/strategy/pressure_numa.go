@@ -115,7 +115,7 @@ func (p *NumaCPUPressureEviction) initFilterAndScorer() error {
 	// filterParams
 	enabledFilters := p.numaPressureConfig.EnabledFilters
 	enabledFilters = append(enabledFilters, rules.DefaultEnabledFilters...)
-	general.Infof("enabledFilters: %v", enabledFilters)
+	// general.Infof("enabledFilters: %v", enabledFilters)
 	filterParams := map[string]interface{}{
 		rules.OwnerRefFilterName:      p.numaPressureConfig.SkippedPodKinds, // OwnerRefFilter params
 		rules.OverRatioNumaFilterName: p.numaOverStats,
@@ -124,12 +124,12 @@ func (p *NumaCPUPressureEviction) initFilterAndScorer() error {
 	if err != nil {
 		return fmt.Errorf("failed to create filterer: %v", err)
 	}
-	general.Infof("create filterer success: %v", filterer)
+	// general.Infof("create filterer success: %v", filterer)
 
 	// scorerParams
 	enabledScorers := p.numaPressureConfig.EnabledScorers
 	enabledScorers = append(enabledScorers, rules.DefaultEnabledScorers...)
-	general.Infof("enabledScorers: %v", enabledScorers)
+	// general.Infof("enabledScorers: %v", enabledScorers)
 	scorerParams := map[string]interface{}{
 		rules.DeploymentEvictionFrequencyScorerName: nil,
 		rules.UsageGapScorerName:                    p.numaOverStats,
@@ -138,7 +138,7 @@ func (p *NumaCPUPressureEviction) initFilterAndScorer() error {
 	if err != nil {
 		return fmt.Errorf("failed to create scorer: %v", err)
 	}
-	general.Infof("create scorer success: %v", scorer)
+	// general.Infof("create scorer success: %v", scorer)
 	p.filterer = filterer
 	p.scorer = scorer
 	return nil
@@ -233,12 +233,12 @@ func (p *NumaCPUPressureEviction) ThresholdMet(_ context.Context, req *pluginapi
 			ThresholdOperator: pluginapi.ThresholdOperator_GREATER_THAN,
 			MetType:           pluginapi.ThresholdMetType_HARD_MET,
 			EvictionScope:     targetMetric,
-			Condition: &pluginapi.Condition{
-				ConditionType: pluginapi.ConditionType_NODE_CONDITION,
-				Effects:       []string{string(v1.TaintEffectNoSchedule)},
-				ConditionName: evictionConditionCPUUsagePressure,
-				MetCondition:  true,
-			},
+			// Condition: &pluginapi.Condition{
+			// 	ConditionType: pluginapi.ConditionType_NODE_CONDITION,
+			// 	Effects:       []string{string(v1.TaintEffectNoSchedule)},
+			// 	ConditionName: evictionConditionCPUUsagePressure,
+			// 	MetCondition:  true,
+			// },
 			CandidatePods: filteredPods,
 		}, nil
 	}
@@ -284,7 +284,7 @@ func (p *NumaCPUPressureEviction) GetTopEvictionPods(ctx context.Context, reques
 	activePods := request.ActivePods
 
 	p.UpdateEvictionScorerParam(rules.UsageGapScorerName, p.numaOverStats)
-	general.Infof("activePods: %v", len(activePods))
+	// general.Infof("activePods: %v", len(activePods))
 
 	filteredPods := p.filterer.Filter(activePods)
 
@@ -303,7 +303,7 @@ func (p *NumaCPUPressureEviction) GetTopEvictionPods(ctx context.Context, reques
 	general.Infof("candidatePods after filter: %v", len(candidatePods))
 
 	candidatePods = p.scorer.Score(candidatePods)
-	general.Infof("candidatePods after scorer: %v", candidatePods)
+	// general.Infof("candidatePods after scorer: %v", candidatePods)
 	// todo may pick multiple numas if overload
 	if len(p.numaOverStats) == 0 {
 		general.Warningf("no numa over stats")

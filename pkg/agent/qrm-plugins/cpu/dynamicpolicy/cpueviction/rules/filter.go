@@ -68,7 +68,7 @@ func NewFilter(enabledFilters []string, emitter metrics.MetricEmitter, filterPar
 		filters[name] = filter
 		params[name] = filterParams[name]
 	}
-	general.Infof("initialized filterer with %d enabled filters", len(filters))
+	// general.Infof("initialized filterer with %d enabled filters", len(filters))
 	return &Filterer{
 		filters:      filters,
 		filterParams: params,
@@ -88,7 +88,7 @@ podLoop:
 	for _, pod := range pods {
 		for name, filter := range f.filters {
 			if filter(pod, f.filterParams[name]) {
-				general.Infof("pod %s filtered by filter %s", pod.Name, name)
+				// general.Infof("pod %s filtered by filter %s", pod.Name, name)
 				_ = f.emitter.StoreInt64("qrm_eviction_filter_pods_total", 1, metrics.MetricTypeNameCount,
 					metrics.MetricTag{Key: "filter_name", Val: name},
 				)
@@ -132,11 +132,11 @@ func OwnerRefFilter(pod *v1.Pod, params interface{}) bool {
 		general.Warningf("OwnerRefFilter params is not []string, no pods will be filtered")
 		return false
 	}
-	general.Infof("OwnerRefFilter: skippedPodKinds %v", skippedPodKinds)
+	// general.Infof("OwnerRefFilter: skippedPodKinds %v", skippedPodKinds)
 	for _, ownerRef := range pod.OwnerReferences {
 		for _, kind := range skippedPodKinds {
 			if ownerRef.Kind == kind {
-				general.Infof("OwnerRefFilter: pod %s is owned by %s, will be filtered", pod.Name, kind)
+				// general.Infof("OwnerRefFilter: pod %s is owned by %s, will be filtered", pod.Name, kind)
 				return true
 			}
 		}
@@ -172,9 +172,9 @@ func OverRatioNumaFilter(pod *v1.Pod, params interface{}) bool {
 	}
 
 	_, existMetric := numaHis[string(pod.UID)]
-	if existMetric {
-		general.Infof("OverRatioNumaFilter: pod %s is overloaded on numa %d, will be filtered", pod.Name, numaID)
-	}
+	// if existMetric {
+	// 	general.Infof("OverRatioNumaFilter: pod %s is overloaded on numa %d, will not be filtered", pod.Name, numaID)
+	// }
 
 	return !existMetric
 }

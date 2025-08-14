@@ -62,9 +62,9 @@ func PrepareCandidatePods(_ context.Context, request *pluginapi.GetTopEvictionPo
 		var err error
 
 		if record, ok := recordsMap[string(pod.UID)]; ok {
-			if record.Buckets != nil {
-				general.Infof("get eviction record for pod %s, record: %v", pod.Name, record)
-			}
+			// if record.Buckets != nil {
+			// 	general.Infof("get eviction record for pod %s, record: %v", pod.Name, record)
+			// }
 			workloadInfos, err = getWorkloadEvictionInfo(record)
 			if err != nil {
 				general.Warningf("get workload eviction info for pod %s failed: %v", pod.Name, err)
