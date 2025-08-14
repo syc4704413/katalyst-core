@@ -254,13 +254,7 @@ func (p *NumaCPUPressureEviction) ThresholdMet(_ context.Context, req *pluginapi
 		ThresholdOperator: pluginapi.ThresholdOperator_GREATER_THAN,
 		MetType:           pluginapi.ThresholdMetType_HARD_MET,
 		EvictionScope:     targetMetric,
-		Condition: &pluginapi.Condition{
-			ConditionType: pluginapi.ConditionType_NODE_CONDITION,
-			Effects:       []string{string(v1.TaintEffectNoSchedule)},
-			ConditionName: evictionConditionCPUUsagePressure,
-			MetCondition:  true,
-		},
-		CandidatePods: filteredPods,
+		CandidatePods:     filteredPods,
 	}, nil
 }
 
