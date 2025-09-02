@@ -444,7 +444,7 @@ func getCCDMaxMemBandwidth(cpuCode string) uint64 {
 
 // findOldL3Cache: Find previous L3 cache data by ID
 // returns pointer to previous L3Mon struct for given ID, or nil if not found.
-func findOldL3Cache(oldL3Mon *types.L3Monitor, id int) *types.L3Mon {
+func findOldL3Cache(oldL3Mon *types.Resctrl, id int) *types.L3Mon {
 	if oldL3Mon == nil || len(oldL3Mon.L3Mon) == 0 {
 		return nil
 	}

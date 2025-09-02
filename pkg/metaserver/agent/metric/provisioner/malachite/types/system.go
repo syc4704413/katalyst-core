@@ -21,19 +21,8 @@ type MalachiteSystemDiskIoResponse struct {
 	Data   SystemDiskIoData `json:"data"`
 }
 
-type DiskIo struct {
-	PrimaryDeviceID   int    `json:"primary_device_id"`
-	SecondaryDeviceID int    `json:"secondary_device_id"`
-	DeviceName        string `json:"device_name"`
-	IoRead            uint64 `json:"io_read"`
-	IoWrite           uint64 `json:"io_write"`
-	IoBusy            uint64 `json:"io_busy"`
-	DiskType          string `json:"disk_type"`
-	WBTValue          int64  `json:"wbt_lat_usec"`
-}
-
 type SystemDiskIoData struct {
-	DiskIo     []DiskIo `json:"disk_io"`
+	DiskIo     []DiskIO `json:"disk_io"`
 	UpdateTime int64    `json:"update_time"`
 }
 
@@ -43,13 +32,19 @@ type MalachiteSystemNetworkResponse struct {
 }
 
 type SystemNetworkData struct {
-	NetworkCard []NetworkCard `json:"networkcard"`
-	TCP         TCP           `json:"tcp"`
-	UpdateTime  int64         `json:"update_time"`
+	SystemNetwork
+	UpdateTime int64 `json:"update_time"`
 }
 
-type NetworkCard struct {
+type SystemNetwork struct {
+	Networkcard []Networkcard `json:"networkcard"`
+	TCP         TCP           `json:"tcp"`
+}
+
+type Networkcard struct {
 	Name               string  `json:"name"`
+	Duplex             string  `json:"duplex"`
+	UpdateTimeSec      int64   `json:"update_time"`
 	ReceiveBytes       uint64  `json:"receive_bytes"`
 	ReceivePackets     uint64  `json:"receive_packets"`
 	ReceiveErrs        uint64  `json:"receive_errs"`
@@ -70,17 +65,23 @@ type NetworkCard struct {
 }
 
 type TCP struct {
-	TCPDelayAcks       uint64  `json:"tcp_delay_acks"`
-	TCPListenOverflows uint64  `json:"tcp_listen_overflows"`
-	TCPListenDrops     uint64  `json:"tcp_listen_drops"`
-	TCPAbortOnMemory   uint64  `json:"tcp_abort_on_memory"`
-	TCPReqQFullDrop    uint64  `json:"tcp_req_q_full_drop"`
-	TCPRetran          float64 `json:"tcp_retran"`
-	TCPRetransSegs     uint64  `json:"tcp_retrans_segs"`
-	TCPOldRetransSegs  uint64  `json:"tcp_old_retrans_segs"`
-	TCPOutSegs         uint64  `json:"tcp_out_segs"`
-	TCPOldOutSegs      uint64  `json:"tcp_old_out_segs"`
-	TCPCloseWait       uint64  `json:"tcp_close_wait"`
+	UpdateTimeSec         int64   `json:"update_time"`
+	TCPDelayAcks          uint64  `json:"tcp_delay_acks"`
+	TCPListenOverflows    uint64  `json:"tcp_listen_overflows"`
+	TCPListenDrops        uint64  `json:"tcp_listen_drops"`
+	TCPAbortOnMemory      uint64  `json:"tcp_abort_on_memory"`
+	TCPReqQFullDrop       uint64  `json:"tcp_req_q_full_drop"`
+	TCPRetran             float64 `json:"tcp_retran"`
+	TCPRetransSegs        uint64  `json:"tcp_retrans_segs"`
+	TCPOldRetransSegs     uint64  `json:"tcp_old_retrans_segs"`
+	TCPOutSegs            uint64  `json:"tcp_out_segs"`
+	TCPOldOutSegs         uint64  `json:"tcp_old_out_segs"`
+	TCPCloseWait          uint64  `json:"tcp_close_wait"`
+	TCPTimeouts           uint64  `json:"tcp_timeouts"`
+	TCPMemPressures       uint64  `json:"tcp_mem_press"`
+	TCPMemPressuresTimeMS uint64  `json:"tcp_mem_press_chrono"`
+	TCPInPressure         uint64  `json:"tcp_in_pressure"`
+	TCPV6InPressure       uint64  `json:"tcpv6_in_pressure"`
 }
 
 type MalachiteSystemInfoResponse struct {
@@ -99,13 +100,87 @@ type MalachiteSystemComputeResponse struct {
 }
 
 type SystemComputeData struct {
-	Load         Load         `json:"load"`
-	CPUCodeName  string       `json:"cpu_codename"`
-	CPU          []CPU        `json:"cpu"`
-	GlobalCPU    CPU          `json:"global_cpu"`
-	ProcessStats ProcessStats `json:"process_stats"`
-	L3Mon        L3Monitor    `json:"l3_mon"`
-	UpdateTime   int64        `json:"update_time"`
+	SystemCompute
+	UpdateTime int64 `json:"update_time"`
+}
+
+type SystemCompute struct {
+	Load          Load           `json:"load"`
+	CPU           []CPU          `json:"cpu"`
+	CpuGlobal     CPU            `json:"global_cpu"`
+	CPUCodename   string         `json:"cpu_codename"`
+	ProcessStats  ProcessStats   `json:"process_stats"`
+	CpuPressure   *Pressure      `json:"pressure"`
+	BpfProgsStats *BpfProgsStats `json:"bpf_prog_stats"`
+	Resctrl       *Resctrl       `json:"l3_mon"`
+}
+
+type SystemIO struct {
+	DiskIo         []DiskIO        `json:"disk_io"`
+	DiskUsage      []NodeDiskUsage `json:"disk_usage"`
+	IoPressure     *Pressure       `json:"pressure"`
+	ZramStat       []ZramStat      `json:"zram_stat"`
+	Jbd2Info       []Jbd2Info      `json:"jbd_info"`
+	WriteBackPages uint64          `json:"writeback_pages"`
+}
+
+type DiskUsage struct {
+	MountPoint  string  `json:"mount_point"`
+	FsType      string  `json:"filesystem_type"`
+	DeviceName  string  `json:"device_name"`
+	TotalBytes  uint64  `json:"total"`
+	FreeBytes   uint64  `json:"free"`
+	SpaceUsage  float64 `json:"usage"`
+	TotalInodes uint64  `json:"total_inodes"`
+	FreeInodes  uint64  `json:"free_inodes"`
+}
+
+type Jbd2Info struct {
+	Partition              string `json:"partition"`
+	TransacLockedTimeMS    uint64 `json:"trans_locked_ms"`
+	TransacCommitAvgTimeUS uint64 `json:"avg_trans_commit_us"`
+}
+
+type ZramStat struct {
+	Name           string `json:"name"`
+	OrigDataSize   uint64 `json:"orig_data_size"`
+	ComprDataSize  uint64 `json:"compr_data_size"`
+	MemUsedTotal   uint64 `json:"mem_used_total"`
+	MemLimit       uint64 `json:"mem_limit"`
+	MemUsedMax     uint64 `json:"mem_used_max"`
+	SamePages      uint64 `json:"same_pages"`
+	PagesCompacted uint64 `json:"pages_compacted"`
+	HugePages      uint64 `json:"huge_pages"`
+}
+
+type DiskIO struct {
+	PrimaryDeviceID   int    `json:"primary_device_id"`
+	SecondaryDeviceID int    `json:"secondary_device_id"`
+	DeviceName        string `json:"device_name"`
+	IoRead            uint64 `json:"io_read"`
+	IoWrite           uint64 `json:"io_write"`
+	IoBusy            uint64 `json:"io_busy"`
+	DeviceType        string `json:"disk_type"`
+	IoReadLat95       uint64 `json:"io_r_lat_95"`
+	IoWriteLat95      uint64 `json:"io_w_lat_95"`
+	IoReadLat90       uint64 `json:"io_r_lat_90"`
+	IoWriteLat90      uint64 `json:"io_w_lat_90"`
+	IoReadLat80       uint64 `json:"io_r_lat_80"`
+	IoWriteLat80      uint64 `json:"io_w_lat_80"`
+	WBTValue          int64  `json:"wbt_lat_usec"`
+}
+
+type BpfProgsStats struct {
+	Stats      []BpfProgStats `json:"stats"`
+	UpdateTime int64          `json:"update_time"`
+}
+
+type BpfProgStats struct {
+	ID        uint32 `json:"id"`
+	Name      []byte `json:"name"`
+	RunTimeNS uint64 `json:"run_time_ns"`
+	RunCount  uint64 `json:"run_cnt"`
+	LoadTime  uint64 `json:"load_time"`
 }
 
 type ProcessStats struct {
@@ -113,9 +188,8 @@ type ProcessStats struct {
 	ProcessBlocked uint64 `json:"procs_blocked"`
 }
 
-type L3Monitor struct {
+type Resctrl struct {
 	L3Mon      []L3Mon `json:"l3mon"`
-	Path       string  `json:"path"`
 	UpdateTime int64   `json:"update_time"`
 }
 
@@ -148,6 +222,9 @@ type CPU struct {
 	CPUIowaitRatio float64  `json:"cpu_iowait_ratio"`
 	CPUSchedWait   float64  `json:"cpu_sched_wait"`
 	CpiData        *CpiData `json:"cpi_data"`
+	CPUStealRatio  float64  `json:"cpu_steal_ratio"`
+	CPUUsrRatio    float64  `json:"cpu_usr_ratio"`
+	CPUIrqRatio    float64  `json:"cpu_irq_ratio"`
 }
 
 type CpiData struct {
@@ -164,10 +241,15 @@ type MalachiteSystemMemoryResponse struct {
 }
 
 type SystemMemoryData struct {
-	System     System    `json:"system"`
-	Numa       []Numa    `json:"numa"`
-	ExtFrag    []ExtFrag `json:"extfrag"`
-	UpdateTime int64     `json:"update_time"`
+	SystemMemory
+	UpdateTime int64 `json:"update_time"`
+}
+
+type SystemMemory struct {
+	System      System    `json:"system"`
+	Numa        []Numa    `json:"numa"`
+	MemPressure *Pressure `json:"pressure"`
+	ExtFrag     []ExtFrag `json:"extfrag"`
 }
 
 type System struct {
@@ -243,4 +325,72 @@ type Full struct {
 type Pressure struct {
 	Some Some `json:"some"`
 	Full Full `json:"full"`
+}
+
+type SystemEventData struct {
+	Events     SystemEvent `json:"event_data"`
+	UpdateTime int64       `json:"update_time"`
+}
+
+type SystemEvent struct {
+	GeneralEvent SystemGeneralEvent `json:"gen"`
+	IOEvent      SystemIOEvent      `json:"io"`
+	FsEvent      SystemFsEvent      `json:"fs"`
+	NetEvent     SystemNetEvent     `json:"net"`
+	MemEvent     SystemMemEvent     `json:"mem"`
+	SchedEvent   SystemSchedEvent   `json:"sched"`
+}
+
+type SystemGeneralEvent struct {
+	SoftLockup uint64 `json:"soft_lockup"`
+	RcuStall   uint64 `json:"rcu_stall"`
+	BadPage    uint64 `json:"bad_page"`
+	KernelWarn uint64 `json:"kernel_warn"`
+	MceUC      uint64 `json:"mce_uc"`
+	PanicTS    uint64 `json:"panic_ts"`
+}
+
+type SystemIOEvent struct {
+	IOError uint64 `json:"io_error"`
+}
+
+type SystemFsEvent struct {
+	Ext4Error uint64 `json:"ext4_error"`
+	Ext4Abrt  uint64 `json:"ext4_abrt"`
+}
+
+type SystemNetEvent struct {
+	XmitTimeout    uint64 `json:"xmit_timeout"`
+	TcpBadCsum     uint64 `json:"tcp_bad_csum"`
+	DevLinkDown    uint64 `json:"link_down"`
+	ExceedBufLimit uint64 `json:"exceed_buf_limit"`
+	RcvQueueFull   uint64 `json:"rcvqueue_full"`
+}
+
+type SystemMemEvent struct {
+	AllocFailure uint64 `json:"alloc_failure"`
+	TotalOOM     uint64 `json:"total_oom"`
+	GlobalOOM    uint64 `json:"global_oom"`
+}
+
+type SystemSchedEvent struct {
+	TaskHung uint64 `json:"hung_task"`
+	CoreDump uint64 `json:"coredump"`
+}
+
+type SystemSensorData struct {
+	Sensors SystemSensor `json:"sensors"`
+}
+
+type SystemSensor struct {
+	TotalPower float64 `json:"total_power"`
+	CPUPower   float64 `json:"cpu_power"`
+	MemPower   float64 `json:"mem_power"`
+	FanPower   float64 `json:"fan_power"`
+	HDDPower   float64 `json:"hdd_power"`
+	PSU0POut   float64 `json:"psu0_pout"`
+	PSU1POut   float64 `json:"psu1_pout"`
+	PSU0PIn    float64 `json:"psu0_pin"`
+	PSU1PIn    float64 `json:"psu1_pin"`
+	UpdateTime int64   `json:"update_time"`
 }

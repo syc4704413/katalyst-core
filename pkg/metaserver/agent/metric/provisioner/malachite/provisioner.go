@@ -282,7 +282,7 @@ func (m *MalachiteMetricsProvisioner) processSystemComputeData(systemComputeData
 	m.metricStore.SetNodeMetric(consts.MetricCPUTotalSystem,
 		utilmetric.MetricData{Value: float64(len(cpu)), Time: &updateTime})
 
-	globalCPU := systemComputeData.GlobalCPU
+	globalCPU := systemComputeData.CpuGlobal
 	m.metricStore.SetNodeMetric(consts.MetricCPUUsageSystem,
 		utilmetric.MetricData{Value: globalCPU.CPUUsage / 100 * float64(len(cpu)), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricCPUUsageRatioSystem,
@@ -419,13 +419,13 @@ func (m *MalachiteMetricsProvisioner) processSystemIOData(systemIOData *malachit
 			utilmetric.MetricData{Value: float64(device.IoBusy), Time: &updateTime})
 
 		diskType := consts.DiskTypeUnknown
-		if device.DiskType == "HDD" {
+		if device.DeviceType == "HDD" {
 			diskType = consts.DiskTypeHDD
-		} else if device.DiskType == "SSD" {
+		} else if device.DeviceType == "SSD" {
 			diskType = consts.DiskTypeSSD
-		} else if device.DiskType == "NVME" {
+		} else if device.DeviceType == "NVME" {
 			diskType = consts.DiskTypeNVME
-		} else if device.DiskType == "VIRTIO" {
+		} else if device.DeviceType == "VIRTIO" {
 			diskType = consts.DiskTypeVIRTIO
 		}
 		m.metricStore.SetDeviceMetric(device.DeviceName, consts.MetricIODiskType,
@@ -464,7 +464,7 @@ func (m *MalachiteMetricsProvisioner) processSystemNetData(systemNetData *malach
 	m.metricStore.SetNodeMetric(consts.MetricNetUpdateTime,
 		utilmetric.MetricData{Value: float64(systemNetData.UpdateTime), Time: &updateTime})
 
-	for _, device := range systemNetData.NetworkCard {
+	for _, device := range systemNetData.Networkcard {
 		// for now, we will only consider standard network interface
 		// todo, may need to use configurations in the future to filter
 		if !strings.HasPrefix(device.Name, "eth") {
@@ -644,8 +644,8 @@ func (m *MalachiteMetricsProvisioner) processSystemExtFragData(systemMemoryData 
 func (m *MalachiteMetricsProvisioner) processSystemCPUComputeData(systemComputeData *malachitetypes.SystemComputeData) {
 	// todo, currently we only get a unified data for the whole system compute data
 	updateTime := time.Unix(systemComputeData.UpdateTime, 0)
-	if len(systemComputeData.CPUCodeName) > 0 {
-		m.metricStore.SetByStringIndex(consts.MetricCPUCodeName, systemComputeData.CPUCodeName)
+	if len(systemComputeData.CPUCodename) > 0 {
+		m.metricStore.SetByStringIndex(consts.MetricCPUCodeName, systemComputeData.CPUCodename)
 	}
 	var cpiTotal, cpiCount float64
 	for _, cpu := range systemComputeData.CPU {
@@ -670,9 +670,9 @@ func (m *MalachiteMetricsProvisioner) processSystemCPUComputeData(systemComputeD
 		}
 	}
 	m.metricStore.SetNodeMetric(consts.MetricCPUUsageRatio,
-		utilmetric.MetricData{Value: systemComputeData.GlobalCPU.CPUUsage / 100.0, Time: &updateTime})
+		utilmetric.MetricData{Value: systemComputeData.CpuGlobal.CPUUsage / 100.0, Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricCPUSysUsageRatio,
-		utilmetric.MetricData{Value: systemComputeData.GlobalCPU.CPUSysUsage / 100.0, Time: &updateTime})
+		utilmetric.MetricData{Value: systemComputeData.CpuGlobal.CPUSysUsage / 100.0, Time: &updateTime})
 
 	if cpiCount > 0 {
 		m.metricStore.SetNodeMetric(consts.MetricCPIAvgSystem,
@@ -685,8 +685,8 @@ func (m *MalachiteMetricsProvisioner) processSystemNUMAComputeData(systemCompute
 		return
 	}
 	// Get current and previous L3 cache monitoring data
-	curL3Mon := systemComputeData.L3Mon
-	oldL3Mon, ok := m.metricStore.GetByStringIndex(consts.MetricL3MonNuma).(malachitetypes.L3Monitor)
+	curL3Mon := systemComputeData.Resctrl
+	oldL3Mon, ok := m.metricStore.GetByStringIndex(consts.MetricL3MonNuma).(malachitetypes.Resctrl)
 	if !ok {
 		// No previous data, set current data directly
 		m.metricStore.SetByStringIndex(consts.MetricL3MonNuma, curL3Mon)
@@ -720,7 +720,7 @@ func (m *MalachiteMetricsProvisioner) processSystemNUMAComputeData(systemCompute
 		var numaID int
 		var maxBytesPS uint64
 		if stats, exists := oldL3CacheBandwidthStats[l3Cache.ID]; !exists {
-			numaID, maxBytesPS = getNumaAndMaxBandwidth(l3Cache.ID, systemComputeData.CPUCodeName)
+			numaID, maxBytesPS = getNumaAndMaxBandwidth(l3Cache.ID, systemComputeData.CPUCodename)
 		} else {
 			numaID = stats.NumaID
 			maxBytesPS = stats.MBMMaxBytesPS
@@ -743,7 +743,7 @@ func (m *MalachiteMetricsProvisioner) processSystemNUMAComputeData(systemCompute
 	}
 	m.metricStore.SetByStringIndex(consts.MetricL3MbmTotalPs, l3CacheBandwidthStats)
 	// Aggregate NUMA bandwidth stats
-	numaBandwidthStats := aggregateNUMABytesPS(l3CacheBandwidthStats, systemComputeData.CPUCodeName)
+	numaBandwidthStats := aggregateNUMABytesPS(l3CacheBandwidthStats, systemComputeData.CPUCodename)
 	updateTime := time.Unix(curL3Mon.UpdateTime, 0)
 	for numaID, stats := range numaBandwidthStats {
 		m.metricStore.SetNumaMetric(numaID, consts.MetricTotalPsMemBandwidthNuma, utilmetric.MetricData{Value: float64(stats.MbmTotalBytesPS), Time: &updateTime})

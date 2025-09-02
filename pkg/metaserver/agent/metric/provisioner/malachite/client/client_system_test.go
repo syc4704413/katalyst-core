@@ -40,22 +40,26 @@ var (
 	fakeSystemCompute = &types.MalachiteSystemComputeResponse{
 		Status: 0,
 		Data: types.SystemComputeData{
-			Load: types.Load{},
-			CPU: []types.CPU{
-				{
-					Name: "CPU1111",
+			SystemCompute: types.SystemCompute{
+				Load: types.Load{},
+				CPU: []types.CPU{
+					{
+						Name: "CPU1111",
+					},
 				},
+				CPUCodename: "AMD_K19Zen3",
 			},
-			CPUCodeName: "AMD_K19Zen3",
 		},
 	}
 
 	fakeSystemMemory = &types.MalachiteSystemMemoryResponse{
 		Status: 0,
 		Data: types.SystemMemoryData{
-			System: types.System{},
-			Numa: []types.Numa{
-				{},
+			SystemMemory: types.SystemMemory{
+				System: types.System{},
+				Numa: []types.Numa{
+					{},
+				},
 			},
 		},
 	}
@@ -63,7 +67,7 @@ var (
 	fakeSystemIO = &types.MalachiteSystemDiskIoResponse{
 		Status: 0,
 		Data: types.SystemDiskIoData{
-			DiskIo: []types.DiskIo{
+			DiskIo: []types.DiskIO{
 				{},
 			},
 		},
@@ -72,10 +76,12 @@ var (
 	fakeSystemNet = &types.MalachiteSystemNetworkResponse{
 		Status: 0,
 		Data: types.SystemNetworkData{
-			NetworkCard: []types.NetworkCard{
-				{},
+			SystemNetwork: types.SystemNetwork{
+				Networkcard: []types.Networkcard{
+					{},
+				},
+				TCP: types.TCP{},
 			},
-			TCP: types.TCP{},
 		},
 	}
 )
@@ -143,7 +149,7 @@ func TestGetSystemCPUCodeName(t *testing.T) {
 	})
 	stats, err := malachiteClient.GetSystemComputeStats()
 	assert.NoError(t, err)
-	assert.Equal(t, "AMD_K19Zen3", stats.CPUCodeName)
+	assert.Equal(t, "AMD_K19Zen3", stats.CPUCodename)
 	malachiteClient.SetURL(map[string]string{
 		SystemComputeResource: "none",
 	})

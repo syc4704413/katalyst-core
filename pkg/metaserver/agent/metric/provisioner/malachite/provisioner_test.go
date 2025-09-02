@@ -58,54 +58,60 @@ func Test_noneExistMetricsProvisioner(t *testing.T) {
 		})
 
 	fakeSystemCompute := &malachitetypes.SystemComputeData{
-		CPU: []malachitetypes.CPU{
-			{
-				Name: "CPU1111",
+		SystemCompute: malachitetypes.SystemCompute{
+			CPU: []malachitetypes.CPU{
+				{
+					Name: "CPU1111",
+				},
 			},
 		},
 	}
 	fakeSystemMemory := &malachitetypes.SystemMemoryData{
-		Numa: []malachitetypes.Numa{
-			{},
+		SystemMemory: malachitetypes.SystemMemory{
+			Numa: []malachitetypes.Numa{
+				{},
+			},
 		},
 	}
 	fakeSystemIO := &malachitetypes.SystemDiskIoData{
-		DiskIo: []malachitetypes.DiskIo{
+		DiskIo: []malachitetypes.DiskIO{
 			{
 				PrimaryDeviceID:   8,
 				SecondaryDeviceID: 16,
 				DeviceName:        "sdb",
-				DiskType:          "HDD",
+				DeviceType:        "HDD",
 				WBTValue:          1234,
 			},
 			{
 				PrimaryDeviceID:   8,
 				SecondaryDeviceID: 24,
 				DeviceName:        "sdc",
-				DiskType:          "SSD",
+				DeviceType:        "SSD",
 				WBTValue:          2234,
 			},
 			{
 				PrimaryDeviceID:   8,
 				SecondaryDeviceID: 32,
 				DeviceName:        "nvme01",
-				DiskType:          "NVME",
+				DeviceType:        "NVME",
 				WBTValue:          3234,
 			},
 			{
 				PrimaryDeviceID:   8,
 				SecondaryDeviceID: 48,
 				DeviceName:        "vdf",
-				DiskType:          "VIRTIO",
+				DeviceType:        "VIRTIO",
 				WBTValue:          75234,
 			},
 		},
 	}
 	fakeSystemNet := &malachitetypes.SystemNetworkData{
-		TCP: malachitetypes.TCP{},
-		NetworkCard: []malachitetypes.NetworkCard{
-			{
-				Name: "eth0",
+		SystemNetwork: malachitetypes.SystemNetwork{
+			TCP: malachitetypes.TCP{},
+			Networkcard: []malachitetypes.Networkcard{
+				{
+					Name: "eth0",
+				},
 			},
 		},
 	}
@@ -584,10 +590,10 @@ func Test_getNumaIDByL3CacheID(t *testing.T) {
 func Test_findOldL3Cache(t *testing.T) {
 	t.Parallel()
 	type args struct {
-		oldL3Mon *malachitetypes.L3Monitor
+		oldL3Mon *malachitetypes.Resctrl
 		id       int
 	}
-	l3Mon := &malachitetypes.L3Monitor{
+	l3Mon := &malachitetypes.Resctrl{
 		L3Mon: []malachitetypes.L3Mon{
 			{ID: 1}, {ID: 2}, {ID: 3},
 		},
