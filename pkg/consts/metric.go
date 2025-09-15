@@ -58,10 +58,18 @@ const (
 	MetricMemActiveFileSystem   = "mem.active.file.system"
 	MetricMemInactiveFileSystem = "mem.inactive.file.system"
 
-	MetricMemDirtySystem            = "mem.dirty.system"
-	MetricMemWritebackSystem        = "mem.writeback.system"
-	MetricMemKswapdstealSystem      = "mem.kswapdsteal.system"
-	MetricMemKswapdstealDeltaSystem = "mem.kswapdsteal.delta.system"
+	MetricMemDirtySystem     = "mem.dirty.system"
+	MetricMemWritebackSystem = "mem.writeback.system"
+
+	MetricMemKswapdstealSystem              = "mem.kswapdsteal.system"
+	MetricMemKswapdstealDeltaSystem         = "mem.kswapdsteal.delta.system"
+	MetricMemVmStatPgStealDirectSystem      = "mem.direct.pgsteal.system"
+	MetricMemVmStatPgStealDirectDeltaSystem = "mem.direct.pgsteal.delta.system"
+	MetricMemVmStatPgScanKswapdSystem       = "mem.kswapd.pgscan.system"
+	MetricMemVmStatPgScanKswapdDeltaSystem  = "mem.kswapd.pgscan.delta.system"
+	MetricMemVmStatPgScanDirectSystem       = "mem.direct.pgscan.system"
+	MetricMemVmStatPgScanDirectDeltaSystem  = "mem.direct.pgscan.delta.system"
+	MetricMemVmStatCompactStallSystem       = "mem.compact.stall.system"
 
 	MetricMemSwapTotalSystem       = "mem.swap.total.system"
 	MetricMemSwapFreeSystem        = "mem.swap.free.system"
@@ -141,6 +149,10 @@ const (
 // System Power and CPUFreq metrics
 const (
 	MetricTotalPowerUsedWatts = "total.power.used.watts"
+	MetricCPUPowerUsedWatts   = "cpu.power.used.watts"
+	MetricMemPowerUsedWatts   = "mem.power.used.watts"
+	MetricFanPowerUsedWatts   = "fan.power.used.watts"
+	MetricHDDPowerUsedWatts   = "hdd.power.used.watts"
 	MetricScalingCPUFreqKHZ   = "scaling.cur.freq.khz"
 )
 

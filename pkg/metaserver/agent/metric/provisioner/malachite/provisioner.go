@@ -315,6 +315,15 @@ func (m *MalachiteMetricsProvisioner) processSystemMemoryData(systemMemoryData *
 	prevMemKswapdStealMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemKswapdstealSystem)
 	m.metricStore.SetNodeMetric(consts.MetricMemKswapdstealDeltaSystem,
 		utilmetric.MetricData{Value: float64(mem.VmstatPgstealKswapd) - prevMemKswapdStealMetric.Value, Time: &updateTime})
+	prevMemVmStatPgStealDirectMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgStealDirectSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgStealDirectDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgStealDirect) - prevMemVmStatPgStealDirectMetric.Value, Time: &updateTime})
+	prevMemVmStatPgScanKswapdMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgScanKswapdSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanKswapdDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanKswapd) - prevMemVmStatPgScanKswapdMetric.Value, Time: &updateTime})
+	prevMemVmStatPgScanDirectMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgScanDirectSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanDirectDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanDirect) - prevMemVmStatPgScanDirectMetric.Value, Time: &updateTime})
 
 	// updating current status
 	m.metricStore.SetNodeMetric(consts.MetricMemTotalSystem,
@@ -347,6 +356,14 @@ func (m *MalachiteMetricsProvisioner) processSystemMemoryData(systemMemoryData *
 		utilmetric.MetricData{Value: float64(mem.MemWriteBackPageCache << 10), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricMemKswapdstealSystem,
 		utilmetric.MetricData{Value: float64(mem.VmstatPgstealKswapd), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgStealDirectSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgStealDirect), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanKswapdSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanKswapd), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanDirectSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanDirect), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatCompactStallSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatCompactStall), Time: &updateTime})
 
 	m.metricStore.SetNodeMetric(consts.MetricMemSwapTotalSystem,
 		utilmetric.MetricData{Value: float64(mem.MemSwapTotal << 10), Time: &updateTime})
