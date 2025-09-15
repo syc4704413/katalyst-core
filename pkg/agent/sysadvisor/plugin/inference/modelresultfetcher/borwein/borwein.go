@@ -49,6 +49,10 @@ import (
 const (
 	BorweinModelResultFetcherName = "borwein_model_result_fetcher"
 
+	MetricDimensionNode      = "node"
+	MetricDimensionNuma      = "numa"
+	MetricDimensionContainer = "container"
+
 	metricInferenceResponseRatio       = "borwein_inference_response_ratio"
 	metricGetInferenceRequestFailed    = "borwein_get_inference_request_failed"
 	metricInferenceFailed              = "borwein_inference_failed"
@@ -314,13 +318,22 @@ func (bmrf *BorweinModelResultFetcher) getInferenceRequestForPods(requestContain
 	req.FeatureNames = append(req.FeatureNames, bmrf.nodeFeatureNames...)
 	req.FeatureNames = append(req.FeatureNames, bmrf.containerFeatureNames...)
 
+	//featureStore
+	modelInput := map[string]map[string]interface{}{
+		MetricDimensionNode:      make(map[string]interface{}),
+		MetricDimensionNuma:      make(map[string]interface{}),
+		MetricDimensionContainer: make(map[string]interface{}),
+	}
+
 	nodeFeatureValues := make([]string, 0, len(bmrf.nodeFeatureNames))
 	for _, nodeFeatureName := range bmrf.nodeFeatureNames {
 		nodeFeatureValue, err := getNodeFeatureValue(callTimestampInSec, nodeFeatureName, metaServer, metaReader)
 		if err != nil {
 			return nil, fmt.Errorf("get node feature: %v failed with error: %v", nodeFeatureName, err)
 		}
-
+		//featureStore
+		modelInput[MetricDimensionNode][nodeFeatureName] = nodeFeatureValue
+		//todo tostring
 		nodeFeatureValues = append(nodeFeatureValues, nodeFeatureValue)
 	}
 
@@ -348,6 +361,9 @@ func (bmrf *BorweinModelResultFetcher) getInferenceRequestForPods(requestContain
 					containerInfo.PodNamespace, containerInfo.PodName, containerInfo.ContainerName, err)
 			}
 
+			//featureStore
+			modelInput[MetricDimensionContainer][containerFeatureName] = containerFeatureValue
+			//todo tostring
 			unionFeatureValues.Values = append(unionFeatureValues.Values, containerFeatureValue)
 		}
 
@@ -359,7 +375,14 @@ func (bmrf *BorweinModelResultFetcher) getInferenceRequestForPods(requestContain
 
 		req.PodRequestEntries[containerInfo.PodUID].ContainerFeatureValues[containerInfo.ContainerName] = unionFeatureValues
 	}
-
+	//setModelInput
+	for metricDimension, metric := range modelInput {
+		err := metaWriter.SetModelInput(metricDimension, metric)
+		if err != nil {
+			return nil, fmt.Errorf("set model input failed with error: %v", err)
+		}
+	}
+	general.Infof("modelInput: %v", modelInput)
 	return req, nil
 }
 
