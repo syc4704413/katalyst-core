@@ -92,10 +92,12 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 
 		typedResults.RangeInferenceResults(func(podUID, containerName string, result *borweininfsvc.InferenceResult) {
 			if result == nil {
+				general.Warningf("find nil result for %s/%s", podUID, containerName)
 				return
 			}
 			if podSet != nil {
 				if _, ok := podSet[podUID]; !ok {
+					general.Warningf("find no pod %s in podSet", podUID)
 					return
 				}
 			}
@@ -107,6 +109,7 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 				return
 			}
 			if !dryRun && specificResult.Ignore {
+				general.Infof("ignore %s/%s", podUID, containerName)
 				return
 			}
 
