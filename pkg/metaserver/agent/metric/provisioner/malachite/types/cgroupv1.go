@@ -105,6 +105,7 @@ type MemoryCgDataV1 struct {
 	TotalRss                  uint64        `json:"total_rss"`
 	TotalShmem                uint64        `json:"total_shmem"`
 	TotalDirty                uint64        `json:"total_dirty"`
+	TotalSwap                 uint64        `json:"total_swap"`
 	TotalKswapdSteal          uint64        `json:"total_kswapd_steal"`
 	TotalWriteback            uint64        `json:"total_writeback"`
 	TotalPgfault              uint64        `json:"total_pgfault"`
