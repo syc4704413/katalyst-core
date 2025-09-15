@@ -77,8 +77,11 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 		return nil, 0, fmt.Errorf("nil metaReader")
 	}
 
+	general.Infof("borwein podSet: %v", podSet)
+
 	inferenceResultKey := borweinutils.GetInferenceResultKey(borweinconsts.ModelNameBorweinLatencyRegression)
 	results, err := metaReader.GetInferenceResult(inferenceResultKey)
+	general.Infof("borwein results: %v", results)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get inference results for %s, error: %v", inferenceResultKey, err)
 	}
@@ -92,10 +95,12 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 
 		typedResults.RangeInferenceResults(func(podUID, containerName string, result *borweininfsvc.InferenceResult) {
 			if result == nil {
+				general.Warningf("find nil result for %s/%s", podUID, containerName)
 				return
 			}
 			if podSet != nil {
 				if _, ok := podSet[podUID]; !ok {
+					general.Warningf("find no pod %s in podSet", podUID)
 					return
 				}
 			}
@@ -107,6 +112,7 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 				return
 			}
 			if !dryRun && specificResult.Ignore {
+				general.Infof("ignore %s/%s", podUID, containerName)
 				return
 			}
 
@@ -119,7 +125,7 @@ func GetLatencyRegressionPredictResult(metaReader metacache.MetaReader, dryRun b
 	default:
 		return nil, 0, fmt.Errorf("invalid model result type: %T", typedResults)
 	}
-
+	general.Infof("borwein ret: %v", ret)
 	return ret, resultTimestamp, nil
 }
 
