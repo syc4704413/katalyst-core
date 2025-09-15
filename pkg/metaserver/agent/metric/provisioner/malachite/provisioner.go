@@ -315,6 +315,15 @@ func (m *MalachiteMetricsProvisioner) processSystemMemoryData(systemMemoryData *
 	prevMemKswapdStealMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemKswapdstealSystem)
 	m.metricStore.SetNodeMetric(consts.MetricMemKswapdstealDeltaSystem,
 		utilmetric.MetricData{Value: float64(mem.VmstatPgstealKswapd) - prevMemKswapdStealMetric.Value, Time: &updateTime})
+	prevMemVmStatPgStealDirectMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgStealDirectSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgStealDirectDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgStealDirect) - prevMemVmStatPgStealDirectMetric.Value, Time: &updateTime})
+	prevMemVmStatPgScanKswapdMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgScanKswapdSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanKswapdDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanKswapd) - prevMemVmStatPgScanKswapdMetric.Value, Time: &updateTime})
+	prevMemVmStatPgScanDirectMetric, _ := m.metricStore.GetNodeMetric(consts.MetricMemVmStatPgScanDirectSystem)
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanDirectDeltaSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanDirect) - prevMemVmStatPgScanDirectMetric.Value, Time: &updateTime})
 
 	// updating current status
 	m.metricStore.SetNodeMetric(consts.MetricMemTotalSystem,
@@ -347,6 +356,14 @@ func (m *MalachiteMetricsProvisioner) processSystemMemoryData(systemMemoryData *
 		utilmetric.MetricData{Value: float64(mem.MemWriteBackPageCache << 10), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricMemKswapdstealSystem,
 		utilmetric.MetricData{Value: float64(mem.VmstatPgstealKswapd), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgStealDirectSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgStealDirect), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanKswapdSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanKswapd), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatPgScanDirectSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatPgScanDirect), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricMemVmStatCompactStallSystem,
+		utilmetric.MetricData{Value: float64(mem.VMStatCompactStall), Time: &updateTime})
 
 	m.metricStore.SetNodeMetric(consts.MetricMemSwapTotalSystem,
 		utilmetric.MetricData{Value: float64(mem.MemSwapTotal << 10), Time: &updateTime})
@@ -575,7 +592,9 @@ func (m *MalachiteMetricsProvisioner) processSystemNumaData(systemMemoryData *ma
 	}
 
 	cpuToNuma := make(map[int]int)
+	numaCPUCount := make(map[int]int)
 	for _, numaInfo := range systemMemoryData.Numa {
+		numaCPUCount[numaInfo.ID] = len(numaInfo.CPUList.Inner)
 		for _, cpuID := range numaInfo.CPUList.Inner {
 			cpuToNuma[cpuID] = numaInfo.ID
 		}
@@ -617,6 +636,8 @@ func (m *MalachiteMetricsProvisioner) processSystemNumaData(systemMemoryData *ma
 	}
 
 	numaCPUUsage := make(map[int]float64)
+	numaCPUSchedWait := make(map[int]float64)
+	numaCPUIOWaitRatio := make(map[int]float64)
 	for _, cpuInfo := range systemComputeData.CPU {
 		cpuID, err := strconv.Atoi(cpuInfo.Name[3:])
 		if err != nil {
@@ -624,11 +645,19 @@ func (m *MalachiteMetricsProvisioner) processSystemNumaData(systemMemoryData *ma
 			continue
 		}
 		numaCPUUsage[cpuToNuma[cpuID]] += cpuInfo.CPUUsage / 100
+		numaCPUSchedWait[cpuToNuma[cpuID]] += cpuInfo.CPUSchedWait * 1000.0
+		numaCPUIOWaitRatio[cpuToNuma[cpuID]] += cpuInfo.CPUIowaitRatio
 	}
 
 	for numaID, usage := range numaCPUUsage {
 		m.metricStore.SetNumaMetric(numaID, consts.MetricCPUUsageNuma,
 			utilmetric.MetricData{Value: usage, Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricCPUUsageNumaAvg,
+			utilmetric.MetricData{Value: usage / float64(numaCPUCount[numaID]), Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricCPUSchedwaitNumaAvg,
+			utilmetric.MetricData{Value: numaCPUSchedWait[numaID] / float64(numaCPUCount[numaID]), Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricCPUIOWaitRatioNumaAvg,
+			utilmetric.MetricData{Value: numaCPUIOWaitRatio[numaID] / float64(numaCPUCount[numaID]), Time: &updateTime})
 	}
 }
 
@@ -747,6 +776,10 @@ func (m *MalachiteMetricsProvisioner) processSystemNUMAComputeData(systemCompute
 	updateTime := time.Unix(curL3Mon.UpdateTime, 0)
 	for numaID, stats := range numaBandwidthStats {
 		m.metricStore.SetNumaMetric(numaID, consts.MetricTotalPsMemBandwidthNuma, utilmetric.MetricData{Value: float64(stats.MbmTotalBytesPS), Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricLocalPsMemBandwidthNuma, utilmetric.MetricData{Value: float64(stats.MbmLocalBytesPS), Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricVictimPsMemBandwidthNuma, utilmetric.MetricData{Value: float64(stats.MbmVictimBytesPS), Time: &updateTime})
+		m.metricStore.SetNumaMetric(numaID, consts.MetricMBMMaxBytesPSNuma, utilmetric.MetricData{Value: float64(stats.MBMMaxBytesPS), Time: &updateTime})
+
 	}
 }
 
@@ -1260,6 +1293,28 @@ func (m *MalachiteMetricsProvisioner) processContainerMemoryData(podUID, contain
 			utilmetric.MetricData{Value: mem.MemPressure.Some.Avg60, Time: &updateTime})
 		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemInactiveAnonContainer,
 			utilmetric.MetricData{Value: float64(mem.MemStats.InactiveAnon), Time: &updateTime})
+
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemActiveAnonContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.ActiveAnon), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemActiveFileContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.ActiveFile), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemKswapdScanContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.PgscanKswapd), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemDirectStealContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.PgstealDirect), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemDirectScanContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.PgscanDirect), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemPgstealContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.Pgsteal), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemPgscanContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.Pgscan), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemWorkingsetRefaultAnonContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.WorkingsetRefaultAnon), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemWorkingsetRefaultFileContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.WorkingsetRefaultFile), Time: &updateTime})
+		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemWorkingsetRefaultContainer,
+			utilmetric.MetricData{Value: float64(mem.MemStats.WorkingsetRefault), Time: &updateTime})
+
 		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemInactiveFileContainer,
 			utilmetric.MetricData{Value: float64(mem.MemStats.InactiveFile), Time: &updateTime})
 		m.metricStore.SetContainerMetric(podUID, containerName, consts.MetricMemMappedContainer,
