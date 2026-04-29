@@ -466,6 +466,7 @@ func (m *MalachiteMetricsProvisioner) processSystemIOData(systemIOData *malachit
 	m.metricStore.SetNodeMetric(consts.MetricDiskTotal, utilmetric.MetricData{Value: float64(diskTotal), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricDiskFree, utilmetric.MetricData{Value: float64(diskFree), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricDiskUsage, utilmetric.MetricData{Value: float64(diskUsage), Time: &updateTime})
+	klog.Infof("get diskUsage: %f, diskTotal: %d, diskFree: %d", diskUsage, diskTotal, diskFree)
 }
 
 func (m *MalachiteMetricsProvisioner) processSystemNetData(systemNetData *malachitetypes.SystemNetworkData) {
@@ -989,8 +990,14 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioReadBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsReadBytes - io.OldBpfFsData.FsReadBytes)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioWriteBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsWriteBytes - io.OldBpfFsData.FsWriteBytes)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.IopsTotal)})
+		var iopsTotal uint64
+		for _, details := range io.IopsDetails {
+			iopsTotal += details.Data["Total"]
+		}
+		klog.Infof("get blkioIopsTotal cgroup v1, iopsTotal: %d, details iopsTotal: %d", io.IopsTotal, iopsTotal)
 	} else if cgStats.CgroupType == "V2" && cgStats.V2 != nil {
 		io := cgStats.V2.Blkio
+		klog.Infof("cgroup v2 get io.IoStat: %v", io.IoStat)
 		updateTime := time.Unix(cgStats.V2.Blkio.UpdateTime, 0)
 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioReadIopsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsRead - io.OldBpfFsData.FsRead)})
@@ -1000,6 +1007,9 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 
 		var iopsTotal uint64
 		for _, deviceIoDetails := range io.IoStat {
+			for key, val := range deviceIoDetails.Data {
+				klog.Infof("get io stat deviceIoDetails: %s, %d", key, val)
+			}
 			iopsTotal += deviceIoDetails.Data["rios"]
 			iopsTotal += deviceIoDetails.Data["wios"]
 			iopsTotal += deviceIoDetails.Data["dios"]
