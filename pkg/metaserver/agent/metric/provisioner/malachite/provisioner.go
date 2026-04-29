@@ -454,6 +454,16 @@ func (m *MalachiteMetricsProvisioner) processSystemIOData(systemIOData *malachit
 	m.metricStore.SetNodeMetric(consts.MetricZramOriginDataSize, utilmetric.MetricData{Value: float64(zramOrigin), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricZramUsedTotal, utilmetric.MetricData{Value: float64(zramUsedTotal), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricZramComprDataSize, utilmetric.MetricData{Value: float64(zramCompr), Time: &updateTime})
+
+	for _, disk := range systemIOData.DiskUsage {
+		m.metricStore.SetDeviceMetric(disk.DeviceName, consts.MetricDiskTotal,
+			utilmetric.MetricData{Value: float64(disk.Total), Time: &updateTime})
+		m.metricStore.SetDeviceMetric(disk.DeviceName, consts.MetricDiskFree,
+			utilmetric.MetricData{Value: float64(disk.Free), Time: &updateTime})
+		m.metricStore.SetDeviceMetric(disk.DeviceName, consts.MetricDiskUsage,
+			utilmetric.MetricData{Value: float64(disk.Usage), Time: &updateTime})
+		klog.Infof("get deviceName: %v, diskUsage: %v, diskTotal: %v, diskFree: %v", disk.DeviceName, disk.Usage, disk.Total, disk.Free)
+	}
 }
 
 func (m *MalachiteMetricsProvisioner) processSystemNetData(systemNetData *malachitetypes.SystemNetworkData) {
