@@ -21,6 +21,7 @@ package malachite
 import (
 	"fmt"
 	"io/ioutil"
+	"k8s.io/klog/v2"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -343,6 +344,8 @@ func (m *MalachiteMetricsProvisioner) processCgroupIopsRate(cgroupPath string, c
 	} else {
 		return
 	}
+
+	klog.Infof("get lastCgroupIops: %d, curCgroupIops: %d", lastCgroupIops, curCgroupIops)
 
 	_curUpdateTime := time.Unix(curUpdateTime, 0)
 	updateTimeDiff := float64(curUpdateTime) - lastUpdateTimeInSec
