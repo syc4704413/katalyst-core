@@ -454,6 +454,18 @@ func (m *MalachiteMetricsProvisioner) processSystemIOData(systemIOData *malachit
 	m.metricStore.SetNodeMetric(consts.MetricZramOriginDataSize, utilmetric.MetricData{Value: float64(zramOrigin), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricZramUsedTotal, utilmetric.MetricData{Value: float64(zramUsedTotal), Time: &updateTime})
 	m.metricStore.SetNodeMetric(consts.MetricZramComprDataSize, utilmetric.MetricData{Value: float64(zramCompr), Time: &updateTime})
+
+	var diskTotal, diskFree uint64
+	var diskUsage float32
+	for _, disk := range systemIOData.DiskUsage {
+		diskTotal += disk.Total
+		diskFree += disk.Free
+		diskUsage += disk.Usage
+	}
+
+	m.metricStore.SetNodeMetric(consts.MetricDiskTotal, utilmetric.MetricData{Value: float64(diskTotal), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricDiskFree, utilmetric.MetricData{Value: float64(diskFree), Time: &updateTime})
+	m.metricStore.SetNodeMetric(consts.MetricDiskUsage, utilmetric.MetricData{Value: float64(diskUsage), Time: &updateTime})
 }
 
 func (m *MalachiteMetricsProvisioner) processSystemNetData(systemNetData *malachitetypes.SystemNetworkData) {
@@ -964,6 +976,10 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 		return
 	}
 
+	lastUpdateTimeMetric, _ := m.metricStore.GetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup)
+
+	m.processCgroupIopsRate(cgroupPath, cgStats, lastUpdateTimeMetric.Value)
+
 	if cgStats.CgroupType == "V1" && cgStats.V1 != nil {
 		updateTime := time.Unix(cgStats.V1.Blkio.UpdateTime, 0)
 
@@ -972,6 +988,7 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioWriteIopsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsWrite - io.OldBpfFsData.FsWrite)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioReadBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsReadBytes - io.OldBpfFsData.FsReadBytes)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioWriteBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsWriteBytes - io.OldBpfFsData.FsWriteBytes)})
+		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.IopsTotal)})
 	} else if cgStats.CgroupType == "V2" && cgStats.V2 != nil {
 		io := cgStats.V2.Blkio
 		updateTime := time.Unix(cgStats.V2.Blkio.UpdateTime, 0)
@@ -980,6 +997,15 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioWriteIopsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsWrite - io.OldBpfFsData.FsWrite)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioReadBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsReadBytes - io.OldBpfFsData.FsReadBytes)})
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioWriteBpsCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.BpfFsData.FsWriteBytes - io.OldBpfFsData.FsWriteBytes)})
+
+		var iopsTotal uint64
+		for _, deviceIoDetails := range io.IoStat {
+			iopsTotal += deviceIoDetails.Data["rios"]
+			iopsTotal += deviceIoDetails.Data["wios"]
+			iopsTotal += deviceIoDetails.Data["dios"]
+		}
+
+		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(iopsTotal)})
 	}
 }
 

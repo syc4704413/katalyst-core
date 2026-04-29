@@ -315,6 +315,49 @@ func (m *MalachiteMetricsProvisioner) processContainerNetRelevantRate(podUID, co
 	}
 }
 
+func (m *MalachiteMetricsProvisioner) processCgroupIopsRate(cgroupPath string, cgStats *types.MalachiteCgroupInfo, lastUpdateTimeInSec float64) {
+	lastMetricValueFn := func(metricName string) float64 {
+		lastMetric, _ := m.metricStore.GetCgroupMetric(cgroupPath, metricName)
+		return lastMetric.Value
+	}
+
+	var (
+		lastCgroupIops = uint64(lastMetricValueFn(consts.MetricBlkioIopsTotalCgroup))
+		curCgroupIops  uint64
+		curUpdateTime  int64
+	)
+
+	if cgStats.CgroupType == "V1" {
+		curCgroupIops = cgStats.V1.Blkio.IopsTotal
+		curUpdateTime = cgStats.V1.Blkio.UpdateTime
+
+	} else if cgStats.CgroupType == "V2" {
+		var iopsTotal uint64
+		for _, deviceIoDetails := range cgStats.V2.Blkio.IoStat {
+			iopsTotal += deviceIoDetails.Data["rios"]
+			iopsTotal += deviceIoDetails.Data["wios"]
+			iopsTotal += deviceIoDetails.Data["dios"]
+		}
+		curCgroupIops = iopsTotal
+		curUpdateTime = cgStats.V2.Blkio.UpdateTime
+	} else {
+		return
+	}
+
+	_curUpdateTime := time.Unix(curUpdateTime, 0)
+	updateTimeDiff := float64(curUpdateTime) - lastUpdateTimeInSec
+	if updateTimeDiff > 0 {
+		m.setCgroupRateMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroupRate, func() float64 {
+			return float64(uint64CounterDelta(lastCgroupIops, curCgroupIops))
+		}, int64(lastUpdateTimeInSec), curUpdateTime)
+	} else {
+		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroupRate, metric.MetricData{
+			Value: float64(uint64CounterDelta(lastCgroupIops, curCgroupIops)) / defaultMetricUpdateInterval,
+			Time:  &_curUpdateTime,
+		})
+	}
+}
+
 // setContainerRateMetric is used to set rate metric in container level.
 // This method will check if the metric is really updated, and decide weather to update metric in metricStore.
 // The method could help avoid lots of meaningless "zero" value.
@@ -333,6 +376,22 @@ func (m *MalachiteMetricsProvisioner) setContainerRateMetric(podUID, containerNa
 	// But to my knowledge, the cost could be acceptable.
 	updateTime := time.Unix(curUpdateTime, 0)
 	m.metricStore.SetContainerMetric(podUID, containerName, targetMetricName,
+		metric.MetricData{Value: deltaValueFunc() / float64(timeDeltaInSec), Time: &updateTime})
+}
+
+func (m *MalachiteMetricsProvisioner) setCgroupRateMetric(cgroupPath string, targetMetricName string, deltaValueFunc func() float64, lastUpdateTime, curUpdateTime int64) {
+	timeDeltaInSec := curUpdateTime - lastUpdateTime
+	if lastUpdateTime == 0 || timeDeltaInSec <= 0 {
+		// Return directly when the following situations happen:
+		// 1. lastUpdateTime == 0, which means no previous data.
+		// 2. timeDeltaInSec == 0, which means the metric is not updated,
+		//	this is originated from the sampling lag between katalyst-core and malachite(data source)
+		// 3. timeDeltaInSec < 0, this is illegal and unlikely to happen.
+		return
+	}
+
+	updateTime := time.Unix(curUpdateTime, 0)
+	m.metricStore.SetCgroupMetric(cgroupPath, targetMetricName,
 		metric.MetricData{Value: deltaValueFunc() / float64(timeDeltaInSec), Time: &updateTime})
 }
 

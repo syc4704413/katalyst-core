@@ -235,6 +235,13 @@ const (
 	MetricZramOriginDataSize = "zram.origin.usage.system"
 )
 
+// System disk metrics
+const (
+	MetricDiskTotal = "disk.total.system"
+	MetricDiskFree  = "disk.free.system"
+	MetricDiskUsage = "disk.usage.system"
+)
+
 // container cpu metrics
 const (
 	MetricCPULimitContainer      = "cpu.limit.container"
@@ -473,6 +480,9 @@ const (
 	MetricBlkioWriteIopsCgroup = "blkio.write.iops.cgroup"
 	MetricBlkioReadBpsCgroup   = "blkio.read.bps.cgroup"
 	MetricBlkioWriteBpsCgroup  = "blkio.write.bps.cgroup"
+	MetricBlkioIopsTotalCgroup = "blkio.iops.total.cgroup"
+
+	MetricBlkioIopsTotalCgroupRate = MetricBlkioIopsTotalCgroup + Rate
 )
 
 // Cgroup net metrics
