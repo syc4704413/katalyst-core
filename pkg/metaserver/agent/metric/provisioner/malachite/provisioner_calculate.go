@@ -335,9 +335,9 @@ func (m *MalachiteMetricsProvisioner) processCgroupIopsRate(cgroupPath string, c
 	} else if cgStats.CgroupType == "V2" {
 		var iopsTotal uint64
 		for _, deviceIoDetails := range cgStats.V2.Blkio.IoStat {
-			iopsTotal += deviceIoDetails.Data["rios"]
-			iopsTotal += deviceIoDetails.Data["wios"]
-			iopsTotal += deviceIoDetails.Data["dios"]
+			iopsTotal += deviceIoDetails["rios"]
+			iopsTotal += deviceIoDetails["wios"]
+			iopsTotal += deviceIoDetails["dios"]
 		}
 		curCgroupIops = iopsTotal
 		curUpdateTime = cgStats.V2.Blkio.UpdateTime

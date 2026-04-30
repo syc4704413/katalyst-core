@@ -992,7 +992,7 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(io.IopsTotal)})
 		var iopsTotal uint64
 		for _, details := range io.IopsDetails {
-			iopsTotal += details.Data["Total"]
+			iopsTotal += details["Total"]
 		}
 		klog.Infof("get blkioIopsTotal cgroup v1, iopsTotal: %d, details iopsTotal: %d, io.IopsDetails: %v", io.IopsTotal, iopsTotal, io.IopsDetails)
 	} else if cgStats.CgroupType == "V2" && cgStats.V2 != nil {
@@ -1008,12 +1008,12 @@ func (m *MalachiteMetricsProvisioner) processCgroupBlkIOData(cgroupPath string, 
 
 		var iopsTotal uint64
 		for _, deviceIoDetails := range io.IoStat {
-			for key, val := range deviceIoDetails.Data {
+			for key, val := range deviceIoDetails {
 				klog.Infof("get io stat deviceIoDetails: %s, %d", key, val)
 			}
-			iopsTotal += deviceIoDetails.Data["rios"]
-			iopsTotal += deviceIoDetails.Data["wios"]
-			iopsTotal += deviceIoDetails.Data["dios"]
+			iopsTotal += deviceIoDetails["rios"]
+			iopsTotal += deviceIoDetails["wios"]
+			iopsTotal += deviceIoDetails["dios"]
 		}
 
 		m.metricStore.SetCgroupMetric(cgroupPath, consts.MetricBlkioIopsTotalCgroup, utilmetric.MetricData{Time: &updateTime, Value: float64(iopsTotal)})
