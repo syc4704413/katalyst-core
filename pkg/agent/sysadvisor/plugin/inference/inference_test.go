@@ -365,7 +365,7 @@ func TestInferencePlugin_fetchModelInput(t *testing.T) {
 				metaReader:          tt.fields.metaReader,
 				metaWriter:          tt.fields.metaWriter,
 			}
-			infp.fetchModelInput(tt.args.ctx)
+			infp.fetchModelInput(tt.args.ctx, 0)
 		})
 	}
 }
