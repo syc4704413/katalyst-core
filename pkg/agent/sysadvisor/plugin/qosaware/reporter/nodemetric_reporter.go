@@ -275,6 +275,38 @@ func (p *nodeMetricsReporterPlugin) updateNodeMetrics() {
 		GroupMetric: groupMetricInfo,
 	}
 
+	if nodeMetricInfo != nil {
+		general.Infof("node metric generic usage: cpu=%v memory=%v memoryBandwidth=%v",
+			nodeMetricInfo.GenericUsage.CPU,
+			nodeMetricInfo.GenericUsage.Memory,
+			nodeMetricInfo.GenericUsage.MemoryBandwidth)
+
+		for _, numaMetric := range nodeMetricInfo.NUMAUsage {
+			general.Infof("node metric numa usage: numa=%d cpu=%v memory=%v memoryBandwidth=%v",
+				numaMetric.NUMAId,
+				numaMetric.Usage.CPU,
+				numaMetric.Usage.Memory,
+				numaMetric.Usage.MemoryBandwidth)
+		}
+	}
+	for _, gm := range groupMetricInfo {
+		general.Infof("group metric generic usage: qos=%s cpu=%v memory=%v memoryBandwidth=%v podList=%v",
+			gm.QoSLevel,
+			gm.GenericUsage.CPU,
+			gm.GenericUsage.Memory,
+			gm.GenericUsage.MemoryBandwidth,
+			gm.PodList)
+
+		for _, numaMetric := range gm.NUMAUsage {
+			general.Infof("group metric numa usage: qos=%s numa=%d cpu=%v memory=%v memoryBandwidth=%v",
+				gm.QoSLevel,
+				numaMetric.NUMAId,
+				numaMetric.Usage.CPU,
+				numaMetric.Usage.Memory,
+				numaMetric.Usage.MemoryBandwidth)
+		}
+	}
+
 	p.RWMutex.Lock()
 	defer p.RWMutex.Unlock()
 	p.nodeMetricStatus = &nms
@@ -503,6 +535,15 @@ func (p *nodeMetricsReporterPlugin) getPodUsage(pod *v1.Pod) (v1.ResourceList, m
 	cpu := resource.NewMilliQuantity(int64(podCPUUsage*1000), resource.DecimalSI)
 	memory := resource.NewQuantity(int64(podMemUsage), resource.BinarySI)
 
+	general.Infof("pod usage summary: pod=%s cpu=%v memory=%v memoryBandwidth=%v numaUsage=%v assignedNUMAs=%v rampUp=%v",
+		pod.Name,
+		cpu,
+		memory,
+		podMemoryBandwidthUsage,
+		numaUsage,
+		assignedNUMAs.String(),
+		rampUp)
+
 	return v1.ResourceList{
 		v1.ResourceMemory:                 *memory,
 		v1.ResourceCPU:                    *cpu,
@@ -653,7 +694,8 @@ func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel strin
 	}
 
 	klog.InfoS("group usage", "qosLevel", qosLevel, "memory", general.FormatMemoryQuantity(memory.AsApproximateFloat64()),
-		"aggMemory", general.FormatMemoryQuantity(aggMemory.AsApproximateFloat64()), "cpu", cpu.AsApproximateFloat64(), "aggCPU", aggCPU.AsApproximateFloat64())
+		"aggMemory", general.FormatMemoryQuantity(aggMemory.AsApproximateFloat64()), "cpu", cpu.AsApproximateFloat64(), "aggCPU", aggCPU.AsApproximateFloat64(),
+		"memoryBandwidth", general.FormatMemoryQuantity(memoryBandwidth.AsApproximateFloat64()))
 
 	return resourceMetric, resourceNUMAMetrics, effectivePods, nil
 }

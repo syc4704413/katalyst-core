@@ -329,6 +329,12 @@ func (c *cnrReporterImpl) tryUpdateCNRStatus(ctx context.Context,
 	if cnrStatusHasChanged(&originCNR.Status, &currentCNR.Status) {
 		klog.Infof("cnr status changed, try to patch it")
 
+		if currentCNR.Status.NodeMetricStatus != nil {
+			klog.Infof("cnr status patch nodeMetricStatus: genericUsage=%+v groupMetric=%+v",
+				currentCNR.Status.NodeMetricStatus.NodeMetric,
+				currentCNR.Status.NodeMetricStatus.GroupMetric)
+		}
+
 		begin := time.Now()
 		defer func() {
 			costs := time.Since(begin)
@@ -345,6 +351,12 @@ func (c *cnrReporterImpl) tryUpdateCNRStatus(ctx context.Context,
 					"status": "failed",
 				})...)
 			return nil, err
+		}
+
+		if cnr != nil && cnr.Status.NodeMetricStatus != nil {
+			klog.Infof("cnr status patch success: nodeMetric=%+v groupMetric=%+v",
+				cnr.Status.NodeMetricStatus.NodeMetric,
+				cnr.Status.NodeMetricStatus.GroupMetric)
 		}
 
 		c.countMetricsWithBaseTags("reporter_update",
