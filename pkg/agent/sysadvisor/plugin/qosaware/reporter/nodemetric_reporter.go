@@ -43,6 +43,7 @@ import (
 	"github.com/kubewharf/katalyst-core/pkg/config/generic"
 	"github.com/kubewharf/katalyst-core/pkg/consts"
 	"github.com/kubewharf/katalyst-core/pkg/metaserver"
+	malachitetypes "github.com/kubewharf/katalyst-core/pkg/metaserver/agent/metric/provisioner/malachite/types"
 	"github.com/kubewharf/katalyst-core/pkg/metrics"
 	schedutil "github.com/kubewharf/katalyst-core/pkg/scheduler/util"
 	"github.com/kubewharf/katalyst-core/pkg/util"
@@ -303,6 +304,13 @@ func (p *nodeMetricsReporterPlugin) getNodeMetricInfo() (*nodeapis.NodeMetricInf
 		nmi.GenericUsage.CPU = cpuUsage
 	}
 
+	memoryBandwidthUsage, err := p.getNodeMemoryBandwidthUsage()
+	if err != nil {
+		errList = append(errList, err)
+	} else {
+		nmi.GenericUsage.MemoryBandwidth = memoryBandwidthUsage
+	}
+
 	for numaID := 0; numaID < p.metaServer.NumNUMANodes; numaID++ {
 		numaUsage := nodeapis.NUMAMetricInfo{NUMAId: numaID, Usage: &nodeapis.ResourceMetric{}}
 		memoryUsage, err := p.getNodeNUMAMemoryUsage(numaID)
@@ -317,6 +325,13 @@ func (p *nodeMetricsReporterPlugin) getNodeMetricInfo() (*nodeapis.NodeMetricInf
 			errList = append(errList, err)
 		} else {
 			numaUsage.Usage.CPU = numaCpuUsage
+		}
+
+		numaMemoryBandwidthUsage, err := p.getNodeNUMAMemoryBandwidthUsage(numaID)
+		if err != nil {
+			errList = append(errList, err)
+		} else {
+			numaUsage.Usage.MemoryBandwidth = numaMemoryBandwidthUsage
 		}
 
 		nmi.NUMAUsage = append(nmi.NUMAUsage, numaUsage)
@@ -394,6 +409,7 @@ func (p *nodeMetricsReporterPlugin) getPodUsage(pod *v1.Pod) (v1.ResourceList, m
 	}
 	podCPUUsage := .0
 	podMemUsage := .0
+	podMemoryBandwidthUsage := resource.NewQuantity(0, resource.BinarySI)
 	for _, container := range containers {
 		if container.RampUp {
 			rampUp = true
@@ -460,12 +476,38 @@ func (p *nodeMetricsReporterPlugin) getPodUsage(pod *v1.Pod) (v1.ResourceList, m
 			usages[v1.ResourceMemory] = memUsage
 			numaUsage[numaID] = usages
 		}
+
+		containerNUMAMBWUsage, containerTotalMBW, err := p.getContainerNUMAMemoryBandwidthUsage(string(pod.UID), container.ContainerName)
+		if err != nil {
+			errList = append(errList, fmt.Errorf("failed to get container NUMA memory bandwidth usage, podUID=%v, containerName=%v, err=%v",
+				pod.UID, container.ContainerName, err))
+		} else {
+			podMemoryBandwidthUsage.Add(*containerTotalMBW)
+			for numaID, mbw := range containerNUMAMBWUsage {
+				usages, ok := numaUsage[numaID]
+				if !ok {
+					usages = make(v1.ResourceList)
+				}
+
+				mbwUsage, ok := usages[apiconsts.ResourceMemoryBandwidth]
+				if !ok {
+					mbwUsage = *resource.NewQuantity(0, resource.BinarySI)
+				}
+				mbwUsage.Add(mbw)
+				usages[apiconsts.ResourceMemoryBandwidth] = mbwUsage
+				numaUsage[numaID] = usages
+			}
+		}
 	}
 
 	cpu := resource.NewMilliQuantity(int64(podCPUUsage*1000), resource.DecimalSI)
 	memory := resource.NewQuantity(int64(podMemUsage), resource.BinarySI)
 
-	return v1.ResourceList{v1.ResourceMemory: *memory, v1.ResourceCPU: *cpu}, numaUsage, assignedNUMAs, rampUp, errors.NewAggregate(errList)
+	return v1.ResourceList{
+		v1.ResourceMemory:                 *memory,
+		v1.ResourceCPU:                    *cpu,
+		apiconsts.ResourceMemoryBandwidth: *podMemoryBandwidthUsage,
+	}, numaUsage, assignedNUMAs, rampUp, errors.NewAggregate(errList)
 }
 
 func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel string) (*nodeapis.ResourceMetric, []nodeapis.NUMAMetricInfo, []*v1.Pod, error) {
@@ -473,6 +515,7 @@ func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel strin
 
 	cpu := resource.NewQuantity(0, resource.DecimalSI)
 	memory := resource.NewQuantity(0, resource.BinarySI)
+	memoryBandwidth := resource.NewQuantity(0, resource.BinarySI)
 
 	numaUsages := make(map[int]v1.ResourceList)
 
@@ -502,6 +545,9 @@ func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel strin
 		}
 		cpu.Add(*podUsage.Cpu())
 		memory.Add(*podUsage.Memory())
+		if mbw, ok := podUsage[apiconsts.ResourceMemoryBandwidth]; ok {
+			memoryBandwidth.Add(mbw)
+		}
 
 		for numaID, podUsages := range podNUMAUsage {
 			usages, ok := numaUsages[numaID]
@@ -539,6 +585,13 @@ func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel strin
 		resourceMetric.CPU = aggCPU
 	}
 
+	aggMBW := p.getAggregatedMetric(memoryBandwidth, apiconsts.ResourceMemoryBandwidth, "getGroupUsage", qosLevel, "memory_bandwidth")
+	if aggMBW == nil {
+		errList = append(errList, fmt.Errorf("failed to get enough samples for group memory bandwidth, qosLevel=%v", qosLevel))
+	} else {
+		resourceMetric.MemoryBandwidth = aggMBW
+	}
+
 	for numaID := 0; numaID < p.metaServer.NumNUMANodes; numaID++ {
 		resourceUsages, ok := numaUsages[numaID]
 		if !ok {
@@ -563,6 +616,14 @@ func (p *nodeMetricsReporterPlugin) getGroupUsage(pods []*v1.Pod, qosLevel strin
 			errList = append(errList, fmt.Errorf("failed to get enhough samples for group numa memory, qosLevel=%v, numa=%v", qosLevel, numaID))
 		} else {
 			resourceNUMAMetric.Memory = aggNUMAMem
+		}
+
+		mbwUsage := resourceUsages[apiconsts.ResourceMemoryBandwidth]
+		aggNUMAMBW := p.getAggregatedMetric(&mbwUsage, apiconsts.ResourceMemoryBandwidth, "getGroupNUMAUsage", qosLevel, "memory_bandwidth", strconv.Itoa(numaID))
+		if aggNUMAMBW == nil {
+			errList = append(errList, fmt.Errorf("failed to get enough samples for group numa memory bandwidth, qosLevel=%v, numa=%v", qosLevel, numaID))
+		} else {
+			resourceNUMAMetric.MemoryBandwidth = aggNUMAMBW
 		}
 
 		resourceNUMAMetrics = append(resourceNUMAMetrics, nodeapis.NUMAMetricInfo{
@@ -659,4 +720,53 @@ func (p *nodeMetricsReporterPlugin) getAggregatedMetric(value *resource.Quantity
 		p.metricAggregators[uniqName] = aggregator
 	}
 	return aggregator.GetWindowedResources(*value)
+}
+
+func (p *nodeMetricsReporterPlugin) getNodeNUMAMemoryBandwidthUsage(numaID int) (*resource.Quantity, error) {
+	metricData, err := p.metaServer.GetNumaMetric(numaID, consts.MetricTotalPsMemBandwidthNuma)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get %s for numa=%d: %w", consts.MetricTotalPsMemBandwidthNuma, numaID, err)
+	}
+
+	return resource.NewQuantity(int64(metricData.Value), resource.BinarySI), nil
+}
+
+func (p *nodeMetricsReporterPlugin) getNodeMemoryBandwidthUsage() (*resource.Quantity, error) {
+	total := resource.NewQuantity(0, resource.BinarySI)
+
+	for numaID := 0; numaID < p.metaServer.NumNUMANodes; numaID++ {
+		q, err := p.getNodeNUMAMemoryBandwidthUsage(numaID)
+		if err != nil {
+			return nil, err
+		}
+		total.Add(*q)
+	}
+	return total, nil
+}
+
+func (p *nodeMetricsReporterPlugin) getContainerNUMAMemoryBandwidthUsage(podUID, containerName string) (map[int]resource.Quantity, *resource.Quantity, error) {
+	key := fmt.Sprintf("%s/%s/%s", consts.MetricMbmTotalPsContainerL3, podUID, containerName)
+	raw := p.metaServer.MetricsFetcher.GetByStringIndex(key)
+
+	statsMap, ok := raw.(map[int]malachitetypes.L3CacheBytesPS)
+	if !ok || len(statsMap) == 0 {
+		return map[int]resource.Quantity{}, resource.NewQuantity(0, resource.BinarySI), nil
+	}
+
+	total := resource.NewQuantity(0, resource.BinarySI)
+	numaUsage := make(map[int]resource.Quantity)
+
+	for _, l3Stat := range statsMap {
+		q := *resource.NewQuantity(int64(l3Stat.MbmTotalBytesPS), resource.BinarySI)
+		total.Add(q)
+
+		exist, ok := numaUsage[l3Stat.NumaID]
+		if !ok {
+			exist = *resource.NewQuantity(0, resource.BinarySI)
+		}
+		exist.Add(q)
+		numaUsage[l3Stat.NumaID] = exist
+	}
+
+	return numaUsage, total, nil
 }
