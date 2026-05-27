@@ -400,7 +400,6 @@ func (m *MalachiteMetricsProvisioner) setContainerMbmTotalMetric(podUID, contain
 				continue
 			}
 		}
-		totalMbmBytesPS += totalBytesPS
 
 		// Calculate local bandwidth
 		var localBytesPS float64
