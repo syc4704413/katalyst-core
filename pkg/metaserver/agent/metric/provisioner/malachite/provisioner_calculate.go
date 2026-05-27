@@ -400,6 +400,7 @@ func (m *MalachiteMetricsProvisioner) setContainerMbmTotalMetric(podUID, contain
 				continue
 			}
 		}
+		totalMbmBytesPS += totalBytesPS
 
 		// Calculate local bandwidth
 		var localBytesPS float64
@@ -409,19 +410,17 @@ func (m *MalachiteMetricsProvisioner) setContainerMbmTotalMetric(podUID, contain
 				continue
 			}
 		}
-
-		numaID, maxBytesPS := getNumaAndMaxBandwidth(int(l3CacheID), cpuCodeName)
-		adjustedTotalBytesPS := totalBytesPS
+		totalLocalBytesPS += localBytesPS
 
 		if strings.Contains(cpuCodeName, consts.AMDGenoaArch) {
 			// Notice: data adjustments needed due to genoa hardware bug
-			adjustedTotalBytesPS += localBytesPS / 3 * 2
+			totalLocalBytesPS += localBytesPS / 3 * 2
 		}
-		totalMbmBytesPS += adjustedTotalBytesPS
-		totalLocalBytesPS += localBytesPS
+
+		numaID, maxBytesPS := getNumaAndMaxBandwidth(int(l3CacheID), cpuCodeName)
 		l3CacheBandwidthStats[int(l3CacheID)] = types.L3CacheBytesPS{
 			NumaID:           numaID,
-			MbmTotalBytesPS:  uint64(adjustedTotalBytesPS),
+			MbmTotalBytesPS:  uint64(totalBytesPS),
 			MbmLocalBytesPS:  uint64(localBytesPS),
 			MbmVictimBytesPS: 0,
 			MBMMaxBytesPS:    maxBytesPS,
