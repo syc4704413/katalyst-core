@@ -29,6 +29,7 @@ import (
 
 	"github.com/kubewharf/katalyst-core/pkg/consts"
 	"github.com/kubewharf/katalyst-core/pkg/metaserver/agent/metric/provisioner/malachite/types"
+	"github.com/kubewharf/katalyst-core/pkg/util/general"
 	"github.com/kubewharf/katalyst-core/pkg/util/metric"
 )
 
@@ -588,9 +589,10 @@ func getNumaAndMaxBandwidthFromSystemL3Stats(
 	cpuCodeName string,
 ) (int, uint64) {
 	if stats, ok := systemL3Stats[l3ID]; ok {
+		general.Infof("get l3 stats from cache success, l3ID: %d", l3ID)
 		return stats.NumaID, stats.MBMMaxBytesPS
 	}
-
+	general.Infof("get l3 stats from cache failed, l3ID: %d, search from system file", l3ID)
 	return getNumaAndMaxBandwidth(l3ID, cpuCodeName)
 }
 
