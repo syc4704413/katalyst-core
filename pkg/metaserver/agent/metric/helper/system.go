@@ -149,9 +149,11 @@ func GetNumaAvgMBWAllocatableMap(metricsFetcher types.MetricsFetcher, siblingNum
 		allocatableRate = siblingNumaInfo.SiblingNumaDefaultMBWAllocatableRate
 	}
 
+	multiplier := siblingNumaInfo.SiblingNumaMBWAllocatableRateMultiplier
+
 	numaMBWAllocatableMap := make(map[int]int64)
 	for numaID, capacity := range numaMBWCapacityMap {
-		numaMBWAllocatableMap[numaID] = int64(float64(capacity) * allocatableRate)
+		numaMBWAllocatableMap[numaID] = int64(float64(capacity) * allocatableRate * multiplier)
 	}
 	return numaMBWAllocatableMap
 }

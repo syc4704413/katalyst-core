@@ -73,7 +73,7 @@ func (m *MalachiteMetricsProvisioner) processContainerMemBandwidth(podUID, conta
 	m.setContainerRateMetric(podUID, containerName, consts.MetricMemBandwidthReadContainer,
 		func() float64 {
 			// read megabyte
-			return float64(uint64CounterDelta(lastOCRReadDRAMs, curOCRReadDRAMs)) * 64 / (1024 * 1024)
+			return float64(uint64CounterDelta(lastOCRReadDRAMs, curOCRReadDRAMs)) * 64 / (1000 * 1000)
 		},
 		int64(lastUpdateTimeInSec), int64(curUpdateTimeInSec))
 
@@ -89,7 +89,7 @@ func (m *MalachiteMetricsProvisioner) processContainerMemBandwidth(podUID, conta
 			imcWritesInc := uint64CounterDelta(lastIMCWrites, curIMCWrites)
 
 			// write megabyte
-			return float64(storeInsInc) / float64(storeAllInsInc) / (1024 * 1024) * float64(imcWritesInc) * 64
+			return float64(storeInsInc) / float64(storeAllInsInc) / (1000 * 1000) * float64(imcWritesInc) * 64
 		},
 		int64(lastUpdateTimeInSec), int64(curUpdateTimeInSec))
 }
