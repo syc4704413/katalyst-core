@@ -630,15 +630,15 @@ func (m *MalachiteMetricsProvisioner) processSystemNumaData(systemMemoryData *ma
 			utilmetric.MetricData{Value: float64(numa.MemInactiveFile << 10), Time: &updateTime})
 
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemBandwidthNuma,
-			utilmetric.MetricData{Value: numa.MemReadBandwidthMB/1024.0 + numa.MemWriteBandwidthMB/1024.0, Time: &updateTime})
+			utilmetric.MetricData{Value: numa.MemReadBandwidthMB/1000.0 + numa.MemWriteBandwidthMB/1000.0, Time: &updateTime})
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemBandwidthMaxNuma,
-			utilmetric.MetricData{Value: numa.MemTheoryMaxBandwidthMB * 0.8 / 1024.0, Time: &updateTime})
+			utilmetric.MetricData{Value: numa.MemTheoryMaxBandwidthMB * 0.8 / 1000.0, Time: &updateTime})
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemBandwidthTheoryNuma,
-			utilmetric.MetricData{Value: numa.MemTheoryMaxBandwidthMB / 1024.0, Time: &updateTime})
+			utilmetric.MetricData{Value: numa.MemTheoryMaxBandwidthMB / 1000.0, Time: &updateTime})
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemBandwidthReadNuma,
-			utilmetric.MetricData{Value: numa.MemReadBandwidthMB / 1024.0, Time: &updateTime})
+			utilmetric.MetricData{Value: numa.MemReadBandwidthMB / 1000.0, Time: &updateTime})
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemBandwidthWriteNuma,
-			utilmetric.MetricData{Value: numa.MemWriteBandwidthMB / 1024.0, Time: &updateTime})
+			utilmetric.MetricData{Value: numa.MemWriteBandwidthMB / 1000.0, Time: &updateTime})
 
 		m.metricStore.SetNumaMetric(numa.ID, consts.MetricMemLatencyReadNuma,
 			utilmetric.MetricData{Value: numa.MemReadLatency, Time: &updateTime})
