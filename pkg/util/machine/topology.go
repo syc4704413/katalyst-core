@@ -690,9 +690,6 @@ func GetSiblingNumaInfo(
 	siblingNumaMBWAllocatableRateMap := conf.SiblingNumaMemoryBandwidthAllocatableRateMap
 	siblingNumaDefaultMBWAllocatableRate := conf.SiblingNumaMemoryBandwidthAllocatableRate
 	siblingNumaMBWAllocatableRateMultiplier := conf.SiblingNumaMemoryBandwidthAllocatableRateMultiplier
-	if siblingNumaMBWAllocatableRateMultiplier == 0 {
-		siblingNumaMBWAllocatableRateMultiplier = 1.0
-	}
 
 	for numaID, distanceMap := range numaDistanceMap {
 		var selfNumaDistance int
