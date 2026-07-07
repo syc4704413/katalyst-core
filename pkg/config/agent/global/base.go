@@ -57,9 +57,10 @@ type MachineInfoConfiguration struct {
 	// SiblingNumaMemoryBandwidthCapacity is the max capacity of memory bandwidth can share
 	// among sibling NUMAs, and SiblingNumaMemoryBandwidthAllocatableRate is the rate of
 	// the allocatable to the capacity
-	SiblingNumaMemoryBandwidthCapacity           int64
-	SiblingNumaMemoryBandwidthAllocatableRate    float64
-	SiblingNumaMemoryBandwidthAllocatableRateMap map[string]float64
+	SiblingNumaMemoryBandwidthCapacity                  int64
+	SiblingNumaMemoryBandwidthAllocatableRate           float64
+	SiblingNumaMemoryBandwidthAllocatableRateMap        map[string]float64
+	SiblingNumaMemoryBandwidthAllocatableRateMultiplier float64
 }
 
 type KubeletConfiguration struct {

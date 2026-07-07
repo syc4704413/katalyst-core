@@ -72,13 +72,14 @@ type BaseOptions struct {
 	RuntimeEndpoint string
 
 	// configurations for machine-info
-	MachineNetMultipleNS                                bool
-	MachineNetNSDirAbsPath                              string
-	MachineNetAllocatableNS                             []string
-	MachineSiblingNumaMaxDistance                       int
-	MachineSiblingNumaMemoryBandwidthCapacity           resource.QuantityValue
-	MachineSiblingNumaMemoryBandwidthAllocatableRate    float64
-	MachineSiblingNumaMemoryBandwidthAllocatableRateMap map[string]string
+	MachineNetMultipleNS                                       bool
+	MachineNetNSDirAbsPath                                     string
+	MachineNetAllocatableNS                                    []string
+	MachineSiblingNumaMaxDistance                              int
+	MachineSiblingNumaMemoryBandwidthCapacity                  resource.QuantityValue
+	MachineSiblingNumaMemoryBandwidthAllocatableRate           float64
+	MachineSiblingNumaMemoryBandwidthAllocatableRateMap        map[string]string
+	MachineSiblingNumaMemoryBandwidthAllocatableRateMultiplier float64
 }
 
 func NewBaseOptions() *BaseOptions {
@@ -101,9 +102,10 @@ func NewBaseOptions() *BaseOptions {
 
 		RuntimeEndpoint: defaultRemoteRuntimeEndpoint,
 
-		MachineNetMultipleNS:                             false,
-		MachineNetAllocatableNS:                          []string{"*"},
-		MachineSiblingNumaMemoryBandwidthAllocatableRate: 1.0,
+		MachineNetMultipleNS:                                       false,
+		MachineNetAllocatableNS:                                    []string{"*"},
+		MachineSiblingNumaMemoryBandwidthAllocatableRate:           1.0,
+		MachineSiblingNumaMemoryBandwidthAllocatableRateMultiplier: 0.9,
 	}
 }
 
@@ -168,6 +170,10 @@ func (o *BaseOptions) AddFlags(fss *cliflag.NamedFlagSets) {
 		"the rate between sibling numa memory bandwidth allocatable to its capacity")
 	fs.StringToStringVar(&o.MachineSiblingNumaMemoryBandwidthAllocatableRateMap, "machine-sibling-numa-memory-bandwidth-allocatable-rate-map", o.MachineSiblingNumaMemoryBandwidthAllocatableRateMap,
 		"the rate map from cpu codename to sibling numa memory bandwidth allocatable rate")
+	fs.Float64Var(&o.MachineSiblingNumaMemoryBandwidthAllocatableRateMultiplier,
+		"machine-sibling-numa-memory-bandwidth-allocatable-rate-multiplier",
+		o.MachineSiblingNumaMemoryBandwidthAllocatableRateMultiplier,
+		"the multiplier applied on top of sibling numa memory bandwidth allocatable rate")
 }
 
 // ApplyTo fills up config with options
@@ -192,6 +198,7 @@ func (o *BaseOptions) ApplyTo(c *global.BaseConfiguration) error {
 	c.SiblingNumaMemoryBandwidthCapacity = o.MachineSiblingNumaMemoryBandwidthCapacity.Quantity.Value()
 	c.SiblingNumaMemoryBandwidthAllocatableRate = o.MachineSiblingNumaMemoryBandwidthAllocatableRate
 	c.SiblingNumaMemoryBandwidthAllocatableRateMap = mapStrToFloat64(o.MachineSiblingNumaMemoryBandwidthAllocatableRateMap)
+	c.SiblingNumaMemoryBandwidthAllocatableRateMultiplier = o.MachineSiblingNumaMemoryBandwidthAllocatableRateMultiplier
 
 	c.KubeletReadOnlyPort = o.KubeletReadOnlyPort
 	c.KubeletSecurePortEnabled = o.KubeletSecurePortEnabled
